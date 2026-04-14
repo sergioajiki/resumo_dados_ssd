@@ -1,0 +1,233 @@
+# =============================================================================
+# CD — resumo-dados-ssd
+# Deploy Contínuo: homologação e produção
+# SES/MS — Superintendência de Saúde Digital
+#
+# STATUS: INATIVO — pipeline comentado, aguardando definição de infraestrutura
+#
+# Para ativar:
+#   1. Descomente o bloco "on:" correspondente ao ambiente desejado
+#   2. Configure os Secrets necessários nas configurações do repositório GitHub:
+#      Settings > Secrets and variables > Actions
+#   3. Ajuste o passo de deploy para a plataforma escolhida (Docker, SSH, etc.)
+#   4. Remova este comentário de status
+#
+# Decisões pendentes (ver docs/cronograma-projeto.md — Fase 0.3):
+#   - Definir servidor/plataforma de homologação (VPS, on-premise SES, nuvem)
+#   - Definir estratégia de deploy (JAR direto, Docker, systemd service)
+#   - Avaliar migração de H2 para PostgreSQL em produção (pendência #5 do log-progresso.md)
+#   - Definir gestão de segredos em produção (Vault, variáveis de ambiente, etc.)
+# =============================================================================
+
+name: CD
+
+# ---------------------------------------------------------------------------
+# TRIGGER (INATIVO — descomente quando a infraestrutura estiver definida)
+# ---------------------------------------------------------------------------
+
+# Deploy em HOMOLOGAÇÃO — disparado por push na branch develop
+# on:
+#   push:
+#     branches:
+#       - develop
+
+# Deploy em PRODUÇÃO — disparado por criação de tag de release (ex.: v1.0.0)
+# on:
+#   push:
+#     tags:
+#       - 'v[0-9]+.[0-9]+.[0-9]+'
+
+# Placeholder para manter o arquivo válido enquanto o trigger está comentado
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'homologacao'
+        type: choice
+        options:
+          - homologacao
+          - producao
+      confirmar:
+        description: 'Digite CONFIRMAR para prosseguir com o deploy'
+        required: true
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Guarda-chuva de segurança para deploy manual via workflow_dispatch
+  # ---------------------------------------------------------------------------
+  validar-confirmacao:
+    name: Validar confirmação
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar confirmação
+        run: |
+          if [ "${{ github.event.inputs.confirmar }}" != "CONFIRMAR" ]; then
+            echo "::error::Deploy cancelado. Digite exatamente CONFIRMAR para prosseguir."
+            exit 1
+          fi
+          echo "Confirmação recebida. Prosseguindo com deploy em ${{ github.event.inputs.ambiente }}."
+
+  # ---------------------------------------------------------------------------
+  # Job: Build do artefato de deploy
+  # ---------------------------------------------------------------------------
+  build-artefato:
+    name: Build do artefato
+    runs-on: ubuntu-latest
+    needs: validar-confirmacao
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache do repositório Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # Build do JAR executável (Spring Boot fat JAR)
+      # Pula os testes aqui — o CI já os executou e aprovou antes do merge
+      - name: Build do JAR executável
+        run: >
+          ./mvnw clean package
+          -DskipTests
+          --batch-mode --no-transfer-progress
+
+      # Upload do JAR como artefato para uso nos jobs de deploy
+      - name: Upload do artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumo-dados-ssd-jar
+          path: target/resumo-dados-ssd-*.jar
+          retention-days: 7
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Job: Deploy em Homologação
+  # ---------------------------------------------------------------------------
+  deploy-homologacao:
+    name: Deploy — Homologação
+    runs-on: ubuntu-latest
+    needs: build-artefato
+    environment:
+      name: homologacao
+      # url: https://homolog.saude.ms.gov.br/resumo-dados-ssd   # descomente quando disponível
+
+    steps:
+      - name: Download do artefato
+        uses: actions/download-artifact@v4
+        with:
+          name: resumo-dados-ssd-jar
+          path: ./deploy
+
+      - name: Listar artefato baixado
+        run: ls -lh ./deploy/
+
+      # -----------------------------------------------------------------------
+      # PLACEHOLDER — Substituir pelo passo de deploy real
+      # -----------------------------------------------------------------------
+      # Opção A: Deploy via SSH (JAR direto em servidor on-premise)
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.HOMOLOG_HOST }}
+      #     username: ${{ secrets.HOMOLOG_USER }}
+      #     key: ${{ secrets.HOMOLOG_SSH_KEY }}
+      #     port: ${{ secrets.HOMOLOG_SSH_PORT }}
+      #     script: |
+      #       sudo systemctl stop resumo-dados-ssd || true
+      #       cp ~/deploy/resumo-dados-ssd-*.jar /opt/resumo-dados-ssd/app.jar
+      #       sudo systemctl start resumo-dados-ssd
+      #       sleep 15
+      #       curl -f http://localhost:8080/actuator/health || exit 1
+      #
+      # Opção B: Deploy via Docker
+      # - name: Build e push da imagem Docker
+      #   run: |
+      #     docker build -t ghcr.io/ses-ms/resumo-dados-ssd:${{ github.sha }} .
+      #     echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      #     docker push ghcr.io/ses-ms/resumo-dados-ssd:${{ github.sha }}
+      #
+      # Opção C: Deploy em servidor de aplicação
+      # - Ajustar conforme a plataforma definida pela equipe de infraestrutura SES/MS
+      # -----------------------------------------------------------------------
+
+      - name: Simular deploy (placeholder)
+        run: |
+          echo "=========================================="
+          echo "DEPLOY EM HOMOLOGAÇÃO — PLACEHOLDER"
+          echo "=========================================="
+          echo "Artefato pronto: $(ls ./deploy/)"
+          echo ""
+          echo "Este passo deve ser substituído pelo deploy real."
+          echo "Consulte os comentários neste arquivo para as opções disponíveis."
+          echo ""
+          echo "Secrets necessários a configurar em:"
+          echo "  GitHub > Settings > Secrets and variables > Actions"
+          echo "  - HOMOLOG_HOST        → IP/hostname do servidor de homologação"
+          echo "  - HOMOLOG_USER        → usuário SSH"
+          echo "  - HOMOLOG_SSH_KEY     → chave privada SSH"
+          echo "  - HOMOLOG_SSH_PORT    → porta SSH (padrão: 22)"
+
+      # Verificação de saúde pós-deploy (descomente quando o deploy estiver ativo)
+      # - name: Health check pós-deploy
+      #   run: |
+      #     sleep 20
+      #     STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      #       https://homolog.saude.ms.gov.br/resumo-dados-ssd/actuator/health)
+      #     if [ "$STATUS" != "200" ]; then
+      #       echo "::error::Health check falhou após deploy. HTTP $STATUS"
+      #       exit 1
+      #     fi
+      #     echo "Deploy concluído. Health check OK."
+
+  # ---------------------------------------------------------------------------
+  # Job: Deploy em Produção (apenas para tags de release)
+  # ---------------------------------------------------------------------------
+  # ATENÇÃO: deploy em produção requer aprovação manual via GitHub Environments
+  # Configurar em: Settings > Environments > producao > Required reviewers
+  # ---------------------------------------------------------------------------
+  #
+  # deploy-producao:
+  #   name: Deploy — Produção
+  #   runs-on: ubuntu-latest
+  #   needs: deploy-homologacao
+  #   environment:
+  #     name: producao
+  #     url: https://api.saude.ms.gov.br/resumo-dados-ssd
+  #   if: startsWith(github.ref, 'refs/tags/v')
+  #
+  #   steps:
+  #     - name: Download do artefato
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: resumo-dados-ssd-jar
+  #         path: ./deploy
+  #
+  #     # PLACEHOLDER — Deploy em produção
+  #     # Ajustar conforme infraestrutura SES/MS
+  #     - name: Deploy em produção
+  #       run: |
+  #         echo "Deploy em produção — implementar conforme infraestrutura definida"
+  #
+  #     - name: Health check pós-deploy produção
+  #       run: |
+  #         sleep 30
+  #         curl -f https://api.saude.ms.gov.br/resumo-dados-ssd/actuator/health
+  #
+  #     - name: Notificar equipe
+  #       run: |
+  #         echo "Deploy ${{ github.ref_name }} em produção concluído com sucesso."
+  #         # Adicionar notificação via Teams, e-mail ou outro canal institucional

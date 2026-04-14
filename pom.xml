@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- =========================================================
+         Parent Spring Boot: gerencia versões de dependências e
+         plugins sem precisar declarar versão em cada artefato.
+         ========================================================= -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.4</version>
+        <relativePath/>
+    </parent>
+
+    <!-- =========================================================
+         Identificação do artefato
+         ========================================================= -->
+    <groupId>br.gov.ms.saude</groupId>
+    <artifactId>resumo-dados-ssd</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Resumo de Dados SSD</name>
+    <description>
+        ETL que extrai dados do Qlik Sense via WebSocket/REST e os armazena
+        localmente em H2 (file mode). Arquitetura hexagonal com portas e
+        adaptadores — o adaptador Qlik pode ser substituído sem alterar o domínio.
+    </description>
+
+    <!-- =========================================================
+         Propriedades globais do projeto
+         ========================================================= -->
+    <properties>
+        <!-- Java 21 com suporte a Virtual Threads (Project Loom) -->
+        <java.version>21</java.version>
+
+        <!-- Versões de dependências não gerenciadas pelo parent -->
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <java-websocket.version>1.5.4</java-websocket.version>
+        <springdoc.version>2.8.6</springdoc.version>
+        <wiremock.version>3.12.1</wiremock.version>
+        <archunit.version>1.4.0</archunit.version>
+
+        <!-- Cobertura mínima exigida pelo JaCoCo -->
+        <jacoco.minimum.coverage>0.70</jacoco.minimum.coverage>
+
+        <!-- Encoding padrão para evitar problemas com caracteres especiais -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <!-- =========================================================
+         DEPENDÊNCIAS
+         ========================================================= -->
+    <dependencies>
+
+        <!-- ── Camada Web (REST controllers, filtros, serialização) ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- ── Persistência JPA / Hibernate ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ── Validação de beans (javax/jakarta.validation) ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ── Actuator: endpoints /health, /info, /metrics ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- ── Thymeleaf: templates para relatórios/dashboards internos ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!-- ── Banco H2 em modo arquivo (runtime: não entra no classpath de compilação) ── -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ── Flyway: versionamento e migração do schema SQL ── -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- ── Lombok: reduz boilerplate (getters, builders, logs) ── -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ── MapStruct: mapeamento entre objetos de domínio e DTOs/entidades ──
+             Essencial na arquitetura hexagonal para não vazar o domínio para
+             as camadas externas.
+             ATENÇÃO: mapstruct-processor deve vir DEPOIS do lombok no classpath
+             do annotation processor (ver configuração do plugin compiler abaixo). -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!-- ── Java-WebSocket: cliente WebSocket para protocolo Qlik Engine JSON API ── -->
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>${java-websocket.version}</version>
+        </dependency>
+
+        <!-- ── Jackson Databind: serialização/deserialização JSON ──
+             Já transitivo do starter-web, declarado explicitamente para
+             deixar a intenção clara e fixar a versão se necessário. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- ── SpringDoc OpenAPI: documentação automática da API REST ── -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- ════════════════════════════════════════════════════════
+             DEPENDÊNCIAS DE TESTE
+             ════════════════════════════════════════════════════════ -->
+
+        <!-- ── Spring Boot Test: JUnit 5, Mockito, AssertJ, MockMvc ── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ── WireMock: stub de HTTP externo (Qlik REST) nos testes de contrato ── -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- ── ArchUnit: testes de arquitetura (regras hexagonal, SOLID) ── -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- =========================================================
+         BUILD / PLUGINS
+         ========================================================= -->
+    <build>
+        <plugins>
+
+            <!-- ── Spring Boot Maven Plugin: empacota fat-jar executável ──
+                 Exclui Lombok do jar final (é compile-time only). -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- ── Maven Compiler Plugin: configura annotation processors ──
+                 Ordem importa: lombok ANTES de mapstruct para que o MapStruct
+                 enxergue os métodos gerados pelo Lombok (@Builder, @Getter…). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <!-- Habilita o binding Lombok-MapStruct sem configuração extra -->
+                        <arg>-Amapstruct.defaultComponentModel=spring</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- ── Maven Surefire Plugin: execução de testes unitários ──
+                 Configurado para JUnit 5 Platform e para incluir relatórios
+                 de forma compatível com CI (Jenkins, GitHub Actions). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Exclui testes de contrato do ciclo padrão;
+                         eles rodam apenas no profile "contract". -->
+                    <excludedGroups>contract</excludedGroups>
+                    <!-- Necessário para que o agente JaCoCo funcione corretamente -->
+                    <argLine>${jacoco.agent.argLine}</argLine>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+
+            <!-- ── JaCoCo Maven Plugin: cobertura de código ──
+                 - prepare-agent: instrumenta bytecode antes dos testes.
+                 - report: gera relatório HTML/XML após os testes.
+                 - check: falha o build se cobertura < 70%.            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <!-- Injeta o agente JaCoCo na JVM de teste -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>jacoco.agent.argLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <!-- Gera o relatório após a fase test -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <!-- Valida cobertura mínima na fase verify -->
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.minimum.coverage}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!-- =========================================================
+         PROFILES
+         ========================================================= -->
+    <profiles>
+
+        <!-- Profile "contract": executa apenas testes marcados com @Tag("contract").
+             Uso: mvn test -P contract
+             Propósito: isolar testes de contrato (WireMock, Pact) do ciclo
+             de testes unitários rápidos, permitindo execução separada em CI. -->
+        <profile>
+            <id>contract</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- Sobreescreve a configuração do plugin acima:
+                                 inclui APENAS os testes de contrato. -->
+                            <excludedGroups/>
+                            <groups>contract</groups>
+                            <argLine>${jacoco.agent.argLine}</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>

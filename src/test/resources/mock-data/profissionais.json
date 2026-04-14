@@ -1,0 +1,112 @@
+[
+  {
+    "ID_USER": 101,
+    "NOME_USER": "Dr. João Mendes Silva",
+    "CRM_USER": "CRM/MS 12345",
+    "NOME_ESPECIALIDADE": "Cardiologia",
+    "MUNICIPIO_USER": "Campo Grande",
+    "COD_IBGE": "5002704",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "40-49",
+    "RACA_COR_USER": "PARDA"
+  },
+  {
+    "ID_USER": 102,
+    "NOME_USER": "Dra. Ana Paula Ferreira",
+    "CRM_USER": "CRM/MS 23456",
+    "NOME_ESPECIALIDADE": "Endocrinologia",
+    "MUNICIPIO_USER": "Dourados",
+    "COD_IBGE": "5003702",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "30-39",
+    "RACA_COR_USER": "BRANCA"
+  },
+  {
+    "ID_USER": 103,
+    "NOME_USER": "Dr. Carlos Eduardo Nunes",
+    "CRM_USER": "CRM/MS 34567",
+    "NOME_ESPECIALIDADE": "Neurologia",
+    "MUNICIPIO_USER": "Três Lagoas",
+    "COD_IBGE": "5008305",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "50-59",
+    "RACA_COR_USER": "BRANCA"
+  },
+  {
+    "ID_USER": 104,
+    "NOME_USER": "Dra. Mariana Costa Lopes",
+    "CRM_USER": "CRM/MS 45678",
+    "NOME_ESPECIALIDADE": "Psiquiatria",
+    "MUNICIPIO_USER": "Campo Grande",
+    "COD_IBGE": "5002704",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "30-39",
+    "RACA_COR_USER": "PARDA"
+  },
+  {
+    "ID_USER": 105,
+    "NOME_USER": "Dr. Roberto Alves Souza",
+    "CRM_USER": "CRM/MS 56789",
+    "NOME_ESPECIALIDADE": "Neurologia",
+    "MUNICIPIO_USER": "Campo Grande",
+    "COD_IBGE": "5002704",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "40-49",
+    "RACA_COR_USER": "PARDA"
+  },
+  {
+    "ID_USER": 106,
+    "NOME_USER": "Dra. Fernanda Ribeiro Lima",
+    "CRM_USER": "CRM/MS 67890",
+    "NOME_ESPECIALIDADE": "Cardiologia",
+    "MUNICIPIO_USER": "Naviraí",
+    "COD_IBGE": "5005300",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "40-49",
+    "RACA_COR_USER": "BRANCA"
+  },
+  {
+    "ID_USER": 107,
+    "NOME_USER": "Dr. Paulo Henrique Mota",
+    "CRM_USER": "CRM/MS 78901",
+    "NOME_ESPECIALIDADE": "Ortopedia",
+    "MUNICIPIO_USER": "Campo Grande",
+    "COD_IBGE": "5002704",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "30-39",
+    "RACA_COR_USER": "PRETA"
+  },
+  {
+    "ID_USER": 108,
+    "NOME_USER": "Dra. Cristina Moura Dias",
+    "CRM_USER": "CRM/MS 89012",
+    "NOME_ESPECIALIDADE": "Dermatologia",
+    "MUNICIPIO_USER": "Dourados",
+    "COD_IBGE": "5003702",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "40-49",
+    "RACA_COR_USER": "BRANCA"
+  },
+  {
+    "ID_USER": 109,
+    "NOME_USER": "Dr. Luiz Fernando Castro",
+    "CRM_USER": "CRM/MS 90123",
+    "NOME_ESPECIALIDADE": "Ortopedia",
+    "MUNICIPIO_USER": "Corumbá",
+    "COD_IBGE": "5003207",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "50-59",
+    "RACA_COR_USER": "AMARELA"
+  },
+  {
+    "ID_USER": 110,
+    "NOME_USER": "Dra. Juliana Prates Barbosa",
+    "CRM_USER": "CRM/MS 01234",
+    "NOME_ESPECIALIDADE": "Psiquiatria",
+    "MUNICIPIO_USER": "Ponta Porã",
+    "COD_IBGE": "5006606",
+    "TP_USER": "MEDICO",
+    "RANGE_IDADE": "30-39",
+    "RACA_COR_USER": "PARDA"
+  }
+]

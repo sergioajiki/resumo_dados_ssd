@@ -1,0 +1,42 @@
+{
+  "tabelas": [
+    {
+      "nome": "DB_DIGSAUDE",
+      "totalRegistros": 16426,
+      "campos": [
+        {"nome": "ID_ATENDIMENTO",        "tipo": "numeric",   "cardinalidade": 16426, "isPrimaryKey": true,  "tags": ["key"]},
+        {"nome": "CNS_PACIENTE",           "tipo": "text",      "cardinalidade": 8518,  "isPrimaryKey": false, "tags": []},
+        {"nome": "DT_NASC_PACIENTE",       "tipo": "text",      "cardinalidade": 7274,  "isPrimaryKey": false, "tags": ["date"]},
+        {"nome": "RACA_PACIENTE",          "tipo": "text",      "cardinalidade": 5,     "isPrimaryKey": false, "tags": []},
+        {"nome": "ETNIA",                  "tipo": "text",      "cardinalidade": 9,     "isPrimaryKey": false, "tags": []},
+        {"nome": "NOME_MUNICIPIO",         "tipo": "text",      "cardinalidade": 49,    "isPrimaryKey": false, "tags": []},
+        {"nome": "IBGE_ATEND",             "tipo": "text",      "cardinalidade": 49,    "isPrimaryKey": false, "tags": []},
+        {"nome": "DT_AGENDAMENTO",         "tipo": "timestamp", "cardinalidade": 306,   "isPrimaryKey": false, "tags": ["date","timestamp"]},
+        {"nome": "HR_AGENDAMENTO",         "tipo": "numeric",   "cardinalidade": 81,    "isPrimaryKey": false, "tags": []},
+        {"nome": "NOME_MEDICO",            "tipo": "text",      "cardinalidade": 28,    "isPrimaryKey": false, "tags": []},
+        {"nome": "CBO_MEDICO",             "tipo": "text",      "cardinalidade": 14,    "isPrimaryKey": false, "tags": []},
+        {"nome": "STATUS_CONSULTA",        "tipo": "text",      "cardinalidade": 7,     "isPrimaryKey": false, "tags": []},
+        {"nome": "DESFECHO_ATEND",         "tipo": "text",      "cardinalidade": 8,     "isPrimaryKey": false, "tags": []},
+        {"nome": "CID_CONSULTA",           "tipo": "text",      "cardinalidade": 1233,  "isPrimaryKey": false, "tags": []},
+        {"nome": "DT_SOLICITACAO",         "tipo": "text",      "cardinalidade": 341,   "isPrimaryKey": false, "tags": ["date"]},
+        {"nome": "TIPO_ZONA",              "tipo": "text",      "cardinalidade": 2,     "isPrimaryKey": false, "tags": []},
+        {"nome": "DT_NEW",                 "tipo": "timestamp", "cardinalidade": 16403, "isPrimaryKey": false, "tags": ["date","timestamp","watermark"]}
+      ]
+    },
+    {
+      "nome": "TEMPDB_USER",
+      "totalRegistros": 9213,
+      "campos": [
+        {"nome": "ID_USER",           "tipo": "numeric", "cardinalidade": 9213, "isPrimaryKey": true,  "tags": ["key"]},
+        {"nome": "NOME_USER",         "tipo": "text",    "cardinalidade": 9200, "isPrimaryKey": false, "tags": []},
+        {"nome": "CRM_USER",          "tipo": "text",    "cardinalidade": 850,  "isPrimaryKey": false, "tags": []},
+        {"nome": "NOME_ESPECIALIDADE","tipo": "text",    "cardinalidade": 16,   "isPrimaryKey": false, "tags": []},
+        {"nome": "MUNICIPIO_USER",    "tipo": "text",    "cardinalidade": 60,   "isPrimaryKey": false, "tags": []},
+        {"nome": "COD_IBGE",          "tipo": "text",    "cardinalidade": 60,   "isPrimaryKey": false, "tags": []},
+        {"nome": "TP_USER",           "tipo": "text",    "cardinalidade": 7,    "isPrimaryKey": false, "tags": []},
+        {"nome": "RANGE_IDADE",       "tipo": "text",    "cardinalidade": 5,    "isPrimaryKey": false, "tags": []},
+        {"nome": "RACA_COR_USER",     "tipo": "text",    "cardinalidade": 5,    "isPrimaryKey": false, "tags": []}
+      ]
+    }
+  ]
+}

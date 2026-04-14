@@ -1,0 +1,86 @@
+# =============================================================================
+# application-dev.yml — Profile de DESENVOLVIMENTO LOCAL
+#
+# Ativado por: SPRING_PROFILES_ACTIVE=dev (padrão definido em application.yml)
+#
+# Objetivo: permitir que o desenvolvedor rode a aplicação na máquina local
+# sem infraestrutura externa. O H2 persiste em arquivo (./data/ssd-db) para
+# que os dados sobrevivam a reinicios, mas podem ser apagados a qualquer momento.
+# =============================================================================
+
+spring:
+
+  # ---------------------------------------------------------------------------
+  # DataSource — H2 em modo ARQUIVO
+  # O arquivo é criado em ./data/ssd-db.mv.db relativo ao diretório de execução.
+  # Usar modo arquivo (ao invés de in-memory) aproxima o comportamento do dev
+  # ao de produção e permite inspecionar os dados com o H2 Console.
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: jdbc:h2:file:./data/ssd-db;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""  # sem senha em dev; não usar esse padrão em produção
+
+  # ---------------------------------------------------------------------------
+  # H2 Console Web — disponível em http://localhost:8080/h2-console
+  # Permite inspecionar/consultar o banco diretamente pelo browser.
+  # NUNCA habilitar em produção.
+  # ---------------------------------------------------------------------------
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        # Permite conexões de fora do localhost (útil em containers Docker locais)
+        web-allow-others: false
+
+  # ---------------------------------------------------------------------------
+  # JPA — modo verboso em dev para facilitar depuração de queries
+  # ---------------------------------------------------------------------------
+  jpa:
+    show-sql: true
+
+  # ---------------------------------------------------------------------------
+  # Flyway — garante que o schema esteja sempre atualizado ao subir
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+
+# =============================================================================
+# Adaptador de fonte de dados para ambiente de desenvolvimento
+#
+# Opções:
+#   qlik-engine → Conecta ao servidor Qlik real (requer VPN/rede corporativa)
+#   mock        → Dados fictícios em memória (desenvolvimento offline)
+#
+# Alterar para "mock" quando trabalhar sem acesso à rede corporativa.
+# =============================================================================
+datasource:
+  adapter: mock
+
+# =============================================================================
+# Logging — nível DEBUG para o pacote da aplicação
+# Facilita rastrear o fluxo de dados da extração até a persistência.
+# Os frameworks de terceiros ficam em INFO para não poluir o log.
+# =============================================================================
+logging:
+  level:
+    br.gov.ms.saude: DEBUG
+    # Útil para ver as queries Hibernate formatadas
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    # WebSocket: habilitar se precisar depurar a conexão com o Qlik
+    org.java_websocket: INFO
+
+# =============================================================================
+# Actuator — em dev expõe todos os endpoints para facilitar diagnóstico
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

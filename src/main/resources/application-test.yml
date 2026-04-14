@@ -1,0 +1,75 @@
+# =============================================================================
+# application-test.yml — Profile de TESTES AUTOMATIZADOS
+#
+# Ativado por:
+#   - @SpringBootTest com @ActiveProfiles("test")
+#   - Anotação @TestPropertySource (para testes unitários isolados)
+#
+# Regras invioláveis neste profile:
+#   1. NUNCA usar o adaptador "qlik-engine" — testes NÃO podem depender de rede.
+#   2. Banco em memória — cada execução começa do zero, garantindo idempotência.
+#   3. Flyway habilitado — garante que as migrações SQL estão corretas.
+# =============================================================================
+
+spring:
+
+  # ---------------------------------------------------------------------------
+  # DataSource — H2 estritamente IN-MEMORY
+  # "MODE=PostgreSQL" ativa compatibilidade com SQL padrão, aproximando
+  # o comportamento do H2 de um banco de produção real.
+  # DB_CLOSE_DELAY=-1: mantém o banco vivo enquanto a JVM estiver rodando
+  # (necessário para testes de integração com múltiplos contextos Spring).
+  # ---------------------------------------------------------------------------
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  # H2 Console desabilitado — não faz sentido em testes automatizados
+  h2:
+    console:
+      enabled: false
+
+  # ---------------------------------------------------------------------------
+  # JPA
+  # ---------------------------------------------------------------------------
+  jpa:
+    # Não exibe SQL nos testes para manter o output limpo e legível
+    show-sql: false
+
+  # ---------------------------------------------------------------------------
+  # Flyway — DEVE estar habilitado nos testes para validar os scripts SQL.
+  # Erros de migração devem ser detectados em testes, não em produção.
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+
+# =============================================================================
+# Adaptador SEMPRE mock em testes.
+# Isso garante que nenhum teste dependa de serviços externos,
+# tornando o pipeline de CI/CD independente de infraestrutura.
+# =============================================================================
+datasource:
+  adapter: mock
+
+# =============================================================================
+# Logging — nível WARN para reduzir ruído no output dos testes.
+# Erros reais ainda aparecem; logs informativos são suprimidos.
+# =============================================================================
+logging:
+  level:
+    root: WARN
+    br.gov.ms.saude: WARN
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.flywaydb: INFO   # INFO para ver quais migrações foram aplicadas nos testes
+
+# =============================================================================
+# Actuator — desabilitado em testes para não interferir no contexto Spring
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

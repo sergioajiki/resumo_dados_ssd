@@ -1,0 +1,110 @@
+# =============================================================================
+# application.yml — Configuração BASE do projeto resumo-dados-ssd
+#
+# Este arquivo contém apenas propriedades COMPARTILHADAS por todos os profiles.
+# Valores específicos de ambiente estão nos arquivos application-{profile}.yml.
+# O Spring Boot mescla automaticamente este arquivo com o arquivo do profile ativo.
+# =============================================================================
+
+spring:
+  application:
+    name: resumo-dados-ssd
+
+  profiles:
+    # Profile padrão para desenvolvimento local.
+    # Em produção, sobrescrever via variável de ambiente:
+    #   SPRING_PROFILES_ACTIVE=prod
+    active: dev
+
+  # ---------------------------------------------------------------------------
+  # JPA / Hibernate
+  # ---------------------------------------------------------------------------
+  jpa:
+    # show-sql desabilitado na base; cada profile decide se ativa.
+    show-sql: false
+
+    hibernate:
+      # "validate": Hibernate verifica se as entidades batem com o schema,
+      # mas NÃO altera nada. O Flyway é o único responsável por DDL.
+      # Isso evita que o Hibernate sobrescreva migrações aplicadas.
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        # Formata o SQL no log para facilitar leitura quando show-sql=true
+        format_sql: true
+
+  # ---------------------------------------------------------------------------
+  # Flyway — Migração de schema versionada
+  # ---------------------------------------------------------------------------
+  flyway:
+    enabled: true
+    # Scripts SQL em src/main/resources/db/migration, nomeados V{n}__{desc}.sql
+    locations: classpath:db/migration
+
+# =============================================================================
+# Spring Boot Actuator
+# Expõe apenas os endpoints necessários para monitoramento.
+# Em produção, recomenda-se proteger /actuator/** com Spring Security.
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expõe somente o necessário; evita vazar informações sensíveis
+        include: health,info,metrics
+  endpoint:
+    health:
+      # Detalhes do health visíveis apenas para usuários autenticados/autorizados
+      show-details: when-authorized
+
+# =============================================================================
+# SpringDoc OpenAPI (Swagger UI)
+# Disponível em http://localhost:8080/swagger-ui.html
+# =============================================================================
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Ordena operações alfabeticamente para facilitar navegação
+    operationsSorter: alpha
+
+# =============================================================================
+# Configurações de domínio do projeto (propriedades customizadas)
+# Estas propriedades são lidas por classes @ConfigurationProperties.
+# =============================================================================
+datasource:
+  # Adaptador de fonte de dados a utilizar.
+  # Valores possíveis:
+  #   mock        → dados em memória, sem rede (padrão seguro)
+  #   qlik-engine → conecta ao Qlik Sense via WebSocket (requer rede)
+  # Mantido como "mock" na base para que o projeto suba sem dependências externas.
+  adapter: mock
+
+  qlik:
+    host: paineispublicos.saude.ms.gov.br
+    app-id: 10f9b380-d7a4-426c-ae4e-8f6b7d3bd3fb
+    # Timeout para estabelecer a conexão WebSocket com o Qlik Engine
+    connection-timeout-ms: 10000
+    # Timeout para aguardar resposta de uma requisição já conectada
+    read-timeout-ms: 30000
+    # Quantidade de registros por página nas chamadas de extração
+    # (balanceia memória consumida x número de roundtrips)
+    page-size: 5000
+
+# =============================================================================
+# Configurações de sincronização ETL
+# =============================================================================
+sync:
+  # Expressão cron: todo dia às 09:00 (horário do servidor)
+  # Formato: segundo minuto hora dia-do-mês mês dia-da-semana
+  schedule: "0 0 9 * * *"
+
+  # "incremental": busca apenas registros novos/alterados desde a última sync.
+  # Alternativa: "full" (extrai tudo do zero — útil para reprocessamento).
+  strategy: incremental
+
+  # Campo do dataset Qlik usado como marca d'água (watermark) para sync incremental.
+  # Representa a data/hora de criação/atualização do registro na fonte.
+  watermark-field: DT_NEW
