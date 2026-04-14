@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -115,6 +116,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ProblemDetail handleNotFound(NoSuchElementException ex) {
         log.debug("Recurso não encontrado: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+        problem.setTitle("Recurso não encontrado");
+        problem.setDetail(ex.getMessage());
+        problem.setType(URI.create("/errors/not-found"));
+        problem.setProperty("timestamp", LocalDateTime.now());
+        return problem;
+    }
+
+    /**
+     * Trata recursos estáticos não encontrados (ex: favicon.ico solicitado pelo browser).
+     *
+     * <p>O browser requisita automaticamente {@code /favicon.ico} a cada acesso.
+     * Como não existe esse recurso, Spring lança {@link NoResourceFoundException}.
+     * Este handler evita que o catch-all genérico a registre como ERROR no log.</p>
+     *
+     * @param ex exceção lançada pelo Spring MVC para recursos estáticos ausentes
+     * @return ProblemDetail com status 404 Not Found
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoResourceFound(NoResourceFoundException ex) {
+        log.debug("Recurso estático não encontrado: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
         problem.setTitle("Recurso não encontrado");
         problem.setDetail(ex.getMessage());
