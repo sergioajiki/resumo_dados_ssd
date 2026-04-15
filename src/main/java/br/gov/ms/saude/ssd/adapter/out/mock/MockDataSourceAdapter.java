@@ -54,8 +54,8 @@ public class MockDataSourceAdapter implements DataSourcePort, DataExtractorPort 
     /** Nome da tabela principal de atendimentos disponível no mock. */
     public static final String TABELA_ATENDIMENTOS = "DB_DIGSAUDE";
 
-    /** Nome da tabela secundária de profissionais disponível no mock. */
-    public static final String TABELA_PROFISSIONAIS = "DB_PROFISSIONAIS";
+    /** Nome da tabela secundária de profissionais disponível no mock — igual ao nome real no Qlik. */
+    public static final String TABELA_PROFISSIONAIS = "TEMPDB_USER";
 
     private final ObjectMapper objectMapper;
 
@@ -84,7 +84,7 @@ public class MockDataSourceAdapter implements DataSourcePort, DataExtractorPort 
      * <p>Os arquivos esperados são:</p>
      * <ul>
      *   <li>{@code mock-data/atendimentos.json} — tabela {@code DB_DIGSAUDE}</li>
-     *   <li>{@code mock-data/profissionais.json} — tabela {@code DB_PROFISSIONAIS}</li>
+     *   <li>{@code mock-data/profissionais.json} — tabela {@code TEMPDB_USER}</li>
      * </ul>
      *
      * @throws DataSourceUnavailableException se os arquivos JSON não puderem ser lidos
