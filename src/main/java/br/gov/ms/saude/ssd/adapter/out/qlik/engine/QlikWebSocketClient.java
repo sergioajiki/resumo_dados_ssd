@@ -79,7 +79,8 @@ public class QlikWebSocketClient {
         this.objectMapper = objectMapper;
         this.readTimeoutMs = props.getReadTimeoutMs();
 
-        String uri = String.format("wss://%s/anon/app/%s", props.getHost(), props.getAppId());
+        String uri = String.format("wss://%s%s/app/%s",
+                props.getHost(), props.getVirtualProxy(), props.getAppId());
         log.info("Conectando ao Qlik Engine API: {}", uri);
 
         try {

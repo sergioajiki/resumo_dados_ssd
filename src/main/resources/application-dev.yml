@@ -51,13 +51,33 @@ spring:
 # Adaptador de fonte de dados para ambiente de desenvolvimento
 #
 # Opções:
-#   qlik-engine → Conecta ao servidor Qlik real (requer VPN/rede corporativa)
+#   qlik-engine → Conecta ao Qlik via WebSocket (Engine API)
 #   mock        → Dados fictícios em memória (desenvolvimento offline)
 #
-# Alterar para "mock" quando trabalhar sem acesso à rede corporativa.
+# Controle via variável de ambiente:
+#   set DATASOURCE_ADAPTER=qlik-engine   (Windows CMD)
+#   $env:DATASOURCE_ADAPTER="qlik-engine"  (PowerShell)
 # =============================================================================
 datasource:
-  adapter: mock
+  adapter: ${DATASOURCE_ADAPTER:mock}
+
+  # ---------------------------------------------------------------------------
+  # Configuração Qlik Sense — Painéis Públicos SES/MS
+  # O host é público (sem VPN). O app-id é encontrado inspecionando o WebSocket
+  # na aba Network do DevTools ao carregar o painel no browser.
+  #
+  # Variáveis de ambiente:
+  #   QLIK_HOST    → hostname do servidor (padrão: paineispublicos.saude.ms.gov.br)
+  #   QLIK_APP_ID  → UUID do app Qlik (obrigatório para adapter=qlik-engine)
+  #   QLIK_VIRTUAL_PROXY → prefixo do virtual proxy anônimo (padrão: /anon)
+  # ---------------------------------------------------------------------------
+  qlik:
+    host: ${QLIK_HOST:paineispublicos.saude.ms.gov.br}
+    app-id: ${QLIK_APP_ID:}
+    virtual-proxy: ${QLIK_VIRTUAL_PROXY:/anon}
+    connection-timeout-ms: ${QLIK_CONNECT_TIMEOUT_MS:10000}
+    read-timeout-ms: ${QLIK_READ_TIMEOUT_MS:30000}
+    page-size: ${QLIK_PAGE_SIZE:5000}
 
 # =============================================================================
 # Logging — nível DEBUG para o pacote da aplicação

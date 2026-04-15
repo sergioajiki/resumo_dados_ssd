@@ -56,6 +56,13 @@ public class QlikProperties {
     private int readTimeoutMs = 30000;
 
     /**
+     * Prefixo do virtual proxy anônimo do Qlik Sense.
+     * Para painéis públicos sem autenticação use {@code /anon}.
+     * Para acesso autenticado use {@code ""} (raiz) ou o nome do proxy configurado.
+     */
+    private String virtualProxy = "/anon";
+
+    /**
      * Número máximo de linhas retornadas por página na Engine API.
      * O Qlik suporta até 10.000; recomendado 5.000 para margem de segurança.
      */
@@ -73,6 +80,9 @@ public class QlikProperties {
 
     public int getReadTimeoutMs() { return readTimeoutMs; }
     public void setReadTimeoutMs(int readTimeoutMs) { this.readTimeoutMs = readTimeoutMs; }
+
+    public String getVirtualProxy() { return virtualProxy; }
+    public void setVirtualProxy(String virtualProxy) { this.virtualProxy = virtualProxy; }
 
     public int getPageSize() { return pageSize; }
     public void setPageSize(int pageSize) { this.pageSize = pageSize; }
