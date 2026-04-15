@@ -1,9 +1,6 @@
 package br.gov.ms.saude.ssd.config;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
 /**
  * Propriedades de configuração da conexão com o servidor Qlik Sense.
@@ -23,7 +20,6 @@ import org.springframework.validation.annotation.Validated;
  *
  * @see br.gov.ms.saude.ssd.config.DataSourceConfig
  */
-@Validated
 @ConfigurationProperties(prefix = "datasource.qlik")
 public class QlikProperties {
 
@@ -31,28 +27,24 @@ public class QlikProperties {
      * Hostname do servidor Qlik Sense (sem protocolo).
      * Exemplo: {@code paineispublicos.saude.ms.gov.br}
      */
-    @NotBlank
     private String host = "";
 
     /**
      * Identificador único do app Qlik Sense a ser consultado.
      * Exemplo: {@code 10f9b380-d7a4-426c-ae4e-8f6b7d3bd3fb}
      */
-    @NotBlank
     private String appId = "";
 
     /**
      * Timeout de abertura da conexão WebSocket em milissegundos.
      * Aumentar em redes com alta latência.
      */
-    @Positive
     private int connectionTimeoutMs = 10000;
 
     /**
      * Timeout de leitura de dados em milissegundos.
      * Aumentar para tabelas grandes ou conexões lentas.
      */
-    @Positive
     private int readTimeoutMs = 30000;
 
     /**
@@ -66,7 +58,6 @@ public class QlikProperties {
      * Número máximo de linhas retornadas por página na Engine API.
      * O Qlik suporta até 10.000; recomendado 5.000 para margem de segurança.
      */
-    @Positive
     private int pageSize = 5000;
 
     public String getHost() { return host; }
