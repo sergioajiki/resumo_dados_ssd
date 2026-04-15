@@ -77,6 +77,8 @@ nbdist/
 .env
 .env.local
 .env.*.local
+# Script de inicialização local (carrega .env.local com segredos)
+start-dev.ps1
 application-prod.yml
 application-secrets.yml
 application-local.yml
