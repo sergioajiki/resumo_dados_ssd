@@ -103,6 +103,48 @@ public class QlikJsonRpcProtocol {
     }
 
     /**
+     * Constrói uma mensagem JSON-RPC para criar um objeto de listagem de campos (FieldList).
+     *
+     * <p>O FieldList é um objeto de sessão que lista todos os campos disponíveis
+     * no modelo de dados do app, incluindo a tabela de origem de cada campo.
+     * Funciona em sessões anônimas, ao contrário de {@code GetTablesAndKeys}.</p>
+     *
+     * @param docHandle handle do documento retornado por {@code OpenDoc}
+     * @return JSON serializado da mensagem RPC
+     */
+    public String buildCreateFieldList(int docHandle) {
+        ObjectNode root = objectMapper.createObjectNode();
+
+        ObjectNode qInfo = objectMapper.createObjectNode();
+        qInfo.put("qType", "FieldList");
+        root.set("qInfo", qInfo);
+
+        ObjectNode qFieldListDef = objectMapper.createObjectNode();
+        qFieldListDef.put("qShowSystem", false);
+        qFieldListDef.put("qShowHidden", false);
+        qFieldListDef.put("qShowSemantic", false);
+        qFieldListDef.put("qShowSrcTables", true);
+        qFieldListDef.put("qShowDefinitionOnly", false);
+        qFieldListDef.put("qShowDerivedFields", false);
+        root.set("qFieldListDef", qFieldListDef);
+
+        return buildRequest(docHandle, "CreateSessionObject", root);
+    }
+
+    /**
+     * Constrói uma mensagem JSON-RPC para obter o layout de um objeto de sessão.
+     *
+     * <p>Usado após {@link #buildCreateFieldList} para recuperar a lista de campos
+     * do FieldList criado.</p>
+     *
+     * @param objectHandle handle do objeto criado por {@code CreateSessionObject}
+     * @return JSON serializado da mensagem RPC
+     */
+    public String buildGetLayout(int objectHandle) {
+        return buildRequest(objectHandle, "GetLayout");
+    }
+
+    /**
      * Constrói uma mensagem JSON-RPC para destruir um objeto de sessão.
      *
      * <p>Deve ser chamado ao final da extração para liberar recursos no servidor Qlik.

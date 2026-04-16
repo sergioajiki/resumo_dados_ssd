@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -114,6 +117,26 @@ public class SchemaController {
      *
      * @return mapa com campos do {@link br.gov.ms.saude.ssd.domain.model.AppMetadata}
      */
+    /**
+     * Lista os campos disponíveis em uma tabela da fonte de dados.
+     *
+     * <p>Endpoint diagnóstico para descobrir os nomes exatos dos campos no Qlik.
+     * Útil quando o nome de um campo é desconhecido antes de adicioná-lo à extração ETL.</p>
+     *
+     * @param tabela nome da tabela (padrão: "DB_DIGSAUDE")
+     * @return lista com os nomes de todos os campos encontrados na tabela
+     */
+    @GetMapping("/schema/campos")
+    @Operation(
+        summary = "Listar campos de uma tabela",
+        description = "Descobre os nomes exatos dos campos disponíveis em uma tabela do Qlik"
+    )
+    @ApiResponse(responseCode = "200", description = "Campos retornados com sucesso")
+    public List<String> campos(
+            @RequestParam(defaultValue = "DB_DIGSAUDE") String tabela) {
+        return dataSourcePort.listarCamposDisponiveis(tabela);
+    }
+
     @GetMapping("/schema/metadata")
     @Operation(
         summary = "Metadados do app",

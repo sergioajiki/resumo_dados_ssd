@@ -137,11 +137,29 @@ public class QlikEngineAdapter implements DataSourcePort, DataExtractorPort {
                 new FieldSchema("NOME_MEDICO", "text", 28, false, List.of()),
                 new FieldSchema("CBO_MEDICO", "text", 14, false, List.of()),
                 new FieldSchema("STATUS_CONSULTA", "text", 7, false, List.of()),
+                new FieldSchema("CLASSIF_CONCLUSAO", "text", 3, false, List.of()),
+                new FieldSchema("TIPO_SERV_ID", "text", 3, false, List.of()),
                 new FieldSchema("DESFECHO_ATEND", "text", 8, false, List.of()),
                 new FieldSchema("CID_CONSULTA", "text", 1233, false, List.of()),
                 new FieldSchema("DT_SOLICITACAO", "text", 341, false, List.of("date")),
                 new FieldSchema("TIPO_ZONA", "text", 2, false, List.of()),
-                new FieldSchema("DT_NEW", "timestamp", 16403, false, List.of("date", "timestamp", "watermark"))
+                new FieldSchema("DT_NEW", "timestamp", 16403, false, List.of("date", "timestamp", "watermark")),
+                // Campos adicionados na V10
+                new FieldSchema("ID_ESTABELECIMENTO", "text", 10, false, List.of()),
+                new FieldSchema("CNES_NESTABELECIMENTO", "text", 10, false, List.of()),
+                new FieldSchema("ID_MEDICO", "text", 28, false, List.of()),
+                new FieldSchema("CLASSFIC_COR", "text", 5, false, List.of()),
+                new FieldSchema("TP_NW_CONCLUSAO", "text", 5, false, List.of()),
+                new FieldSchema("ID_DIGSAUDE_REF", "text", 10, false, List.of()),
+                new FieldSchema("TELEFONE", "text", 8518, false, List.of()),
+                new FieldSchema("CEP_PACIENTE", "text", 8518, false, List.of()),
+                new FieldSchema("RUA_PACIENTE", "text", 8518, false, List.of()),
+                new FieldSchema("NUM_PACIENTE", "text", 8518, false, List.of()),
+                new FieldSchema("BAIRRO_PACIENTE", "text", 8518, false, List.of()),
+                new FieldSchema("COMPLEMENTO_END_PACIENTE", "text", 8518, false, List.of()),
+                new FieldSchema("DESCRICAO_ENDERECO", "text", 8518, false, List.of()),
+                new FieldSchema("ENDERECO_COMPLETO", "text", 8518, false, List.of()),
+                new FieldSchema("DESCRICAO_CONSULTA", "text", 8518, false, List.of())
         );
 
         List<FieldSchema> camposProf = List.of(
@@ -216,6 +234,66 @@ public class QlikEngineAdapter implements DataSourcePort, DataExtractorPort {
     public List<ObjectDescriptor> listAvailableObjects() {
         log.warn("QlikEngineAdapter.listAvailableObjects() não suportado sem autenticação.");
         return List.of();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Chama {@code GetTablesAndKeys} para obter todas as tabelas e campos do app.
+     * Filtra pela {@code tabelaNome} informada e retorna os nomes dos campos encontrados.
+     * Útil para descobrir o nome exato de campos desconhecidos no Qlik.</p>
+     */
+    @Override
+    public java.util.List<String> listarCamposDisponiveis(String tabelaNome) {
+        QlikWebSocketClient ws = null;
+        try {
+            ws = newClient();
+            QlikJsonRpcProtocol rpc = newProtocol();
+
+            JsonNode openDocResp = ws.sendAndWait(rpc.buildOpenDoc(props.getAppId()));
+            checkError(openDocResp, "OpenDoc");
+            int docHandle = rpc.extractHandle(openDocResp);
+
+            // Cria objeto FieldList — funciona em sessões anônimas
+            JsonNode createResp = ws.sendAndWait(rpc.buildCreateFieldList(docHandle));
+            checkError(createResp, "CreateFieldList");
+            int fieldListHandle = rpc.extractHandle(createResp);
+
+            // Obtém o layout do FieldList com todos os campos
+            JsonNode layoutResp = ws.sendAndWait(rpc.buildGetLayout(fieldListHandle));
+            checkError(layoutResp, "GetLayout");
+
+            java.util.List<String> campos = new java.util.ArrayList<>();
+            JsonNode items = layoutResp.path("result").path("qLayout")
+                    .path("qFieldList").path("qItems");
+
+            for (JsonNode item : items) {
+                String fieldName = item.path("qName").asText(null);
+                // qSrcTables contém as tabelas de origem do campo
+                JsonNode srcTables = item.path("qSrcTables");
+                boolean pertenceTabela = tabelaNome.isBlank();
+                if (!pertenceTabela) {
+                    for (JsonNode t : srcTables) {
+                        if (tabelaNome.equalsIgnoreCase(t.asText(""))) {
+                            pertenceTabela = true;
+                            break;
+                        }
+                    }
+                }
+                if (fieldName != null && !fieldName.startsWith("$") && pertenceTabela) {
+                    campos.add(fieldName);
+                }
+            }
+
+            log.info("Campos encontrados em '{}': {}", tabelaNome, campos);
+            return campos;
+
+        } catch (Exception e) {
+            log.error("Erro ao listar campos de {}: {}", tabelaNome, e.getMessage());
+            return java.util.List.of();
+        } finally {
+            closeQuietly(ws);
+        }
     }
 
     /**
@@ -336,20 +414,22 @@ public class QlikEngineAdapter implements DataSourcePort, DataExtractorPort {
             log.debug("HyperCube criado. Handle={}, campos={}", objHandle, fields.size());
 
             // Passo 3: Extração paginada
+            // pageSize efetivo respeita o limite de células do Qlik: rows × cols ≤ 10.000
             List<List<Object>> todasAsLinhas = new ArrayList<>();
+            int effectivePageSize = paginationStrategy.getEffectivePageSize(fields.size());
             int top = 0;
 
             do {
                 JsonNode dataResp = ws.sendAndWait(
-                        rpc.buildGetHyperCubeData(objHandle, top, paginationStrategy.getPageSize(), fields.size()));
+                        rpc.buildGetHyperCubeData(objHandle, top, effectivePageSize, fields.size()));
                 checkError(dataResp, "GetHyperCubeData");
 
                 List<List<Object>> pagina = paginationStrategy.extractRows(rpc.extractDataRows(dataResp));
                 todasAsLinhas.addAll(pagina);
                 log.debug("Página extraída: {} linhas (top={}). Total acumulado: {}", pagina.size(), top, todasAsLinhas.size());
 
-                if (!paginationStrategy.hasMorePages(pagina, top)) break;
-                top = paginationStrategy.nextTop(top);
+                if (!paginationStrategy.hasMorePages(pagina, top, effectivePageSize)) break;
+                top += effectivePageSize;
 
             } while (true);
 

@@ -38,6 +38,12 @@ public class QlikPaginationStrategy {
 
     private static final Logger log = LoggerFactory.getLogger(QlikPaginationStrategy.class);
 
+    /**
+     * Limite máximo de células por chamada GetHyperCubeData no Qlik Engine API.
+     * Erro [6001] "Result too large" ocorre quando rows × columns excede este valor.
+     */
+    private static final int QLIK_MAX_CELLS_PER_PAGE = 10_000;
+
     private final int pageSize;
 
     /**
@@ -63,6 +69,27 @@ public class QlikPaginationStrategy {
     }
 
     /**
+     * Retorna o tamanho de página efetivo, limitado pelo máximo de células do Qlik.
+     *
+     * <p>O Qlik Engine API retorna erro [6001] "Result too large" quando
+     * {@code rows × numColumns > QLIK_MAX_CELLS_PER_PAGE}. Este método garante
+     * que o número de linhas solicitado por página nunca exceda esse limite.</p>
+     *
+     * @param numColumns número de colunas da extração
+     * @return {@code min(pageSize, floor(QLIK_MAX_CELLS_PER_PAGE / numColumns))}
+     */
+    public int getEffectivePageSize(int numColumns) {
+        if (numColumns <= 0) return pageSize;
+        int maxRows = QLIK_MAX_CELLS_PER_PAGE / numColumns;
+        int effective = Math.min(pageSize, maxRows);
+        if (effective < pageSize) {
+            log.debug("PageSize reduzido de {} para {} (limite de células: {} × {} = {})",
+                    pageSize, effective, effective, numColumns, effective * numColumns);
+        }
+        return effective;
+    }
+
+    /**
      * Verifica se há mais páginas a buscar com base no resultado da página atual.
      *
      * <p>Retorna {@code false} quando a página retornada tiver menos linhas que
@@ -73,7 +100,19 @@ public class QlikPaginationStrategy {
      * @return {@code true} se deve solicitar a próxima página; {@code false} se chegou ao fim
      */
     public boolean hasMorePages(List<List<Object>> rows, int currentTop) {
-        boolean hasMore = rows.size() == pageSize;
+        return hasMorePages(rows, currentTop, pageSize);
+    }
+
+    /**
+     * Verifica se há mais páginas, comparando com o tamanho efetivo usado na requisição.
+     *
+     * @param rows              linhas retornadas na página atual
+     * @param currentTop        índice da linha inicial desta página
+     * @param requestedPageSize tamanho de página usado na chamada GetHyperCubeData
+     * @return {@code true} se deve solicitar a próxima página
+     */
+    public boolean hasMorePages(List<List<Object>> rows, int currentTop, int requestedPageSize) {
+        boolean hasMore = rows.size() == requestedPageSize;
         if (hasMore) {
             log.debug("Página completa ({} linhas a partir de {}). Há mais páginas.", rows.size(), currentTop);
         } else {
@@ -123,10 +162,24 @@ public class QlikPaginationStrategy {
     }
 
     /**
-     * Extrai o valor de uma célula Qlik, priorizando o tipo mais adequado.
+     * Extrai o valor de uma célula Qlik, priorizando o valor textual formatado.
+     *
+     * <p>Prioridade:</p>
+     * <ol>
+     *   <li>Se {@code qIsNull=true}: {@code null}</li>
+     *   <li>Se {@code qText} for uma string não vazia: retorna a string — cobre datas
+     *       (ex: "15/03/2026 14:30:00"), textos e IDs numéricos formatados</li>
+     *   <li>Se {@code qNum} for um número válido (não-sentinela): retorna {@code Double}
+     *       — fallback para campos estritamente numéricos sem representação textual</li>
+     * </ol>
+     *
+     * <p>Datas no Qlik possuem {@code qNum} (serial de dias desde 1899-12-30) E
+     * {@code qText} (string formatada). Preferir {@code qText} garante que
+     * {@code FieldTransformerService.parseDateTime()} receba o formato esperado
+     * em vez do serial numérico.</p>
      *
      * @param cell nó JSON de uma célula do qMatrix
-     * @return valor Java correspondente: {@code null}, {@code Double} ou {@code String}
+     * @return valor Java correspondente: {@code null}, {@code String} ou {@code Double}
      */
     private Object extractCellValue(JsonNode cell) {
         // Valor nulo na fonte
@@ -134,18 +187,23 @@ public class QlikPaginationStrategy {
             return null;
         }
 
-        // Valor numérico — retorna Double para campos como ID_ATENDIMENTO, HR_AGENDAMENTO
+        // Preferir qText — datas, strings, IDs e campos formatados chegam aqui
+        // com o valor de exibição correto (ex: "15/03/2026 14:30:00", "12345")
+        String text = cell.path("qText").asText(null);
+        if (text != null && !text.isBlank() && !text.equals("-")) {
+            return text;
+        }
+
+        // Fallback: qNum para campos estritamente numéricos sem representação textual
+        // Qlik usa Double.MAX_VALUE (~1.8E308) como sentinela para "não numérico"
         JsonNode qNum = cell.path("qNum");
         if (!qNum.isMissingNode() && !qNum.isNull()) {
             double num = qNum.asDouble();
-            // Qlik usa Double.MAX_VALUE como sentinela para "não numérico"
             if (num < 1.0E15) {
                 return num;
             }
         }
 
-        // Valor textual — retorna qText para datas, strings e campos formatados
-        String text = cell.path("qText").asText(null);
-        return (text == null || text.isBlank() || text.equals("-")) ? null : text;
+        return null;
     }
 }

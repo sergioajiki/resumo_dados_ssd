@@ -10,8 +10,16 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * Cliente WebSocket para comunicação com a Qlik Engine API via JSON-RPC 2.0.
@@ -84,7 +92,16 @@ public class QlikWebSocketClient {
         log.info("Conectando ao Qlik Engine API: {}", uri);
 
         try {
-            this.wsClient = new InternalWsClient(new URI(uri));
+            // Qlik Sense exige cookie de sessão anônima antes de aceitar WebSocket.
+            // Fazemos um GET ao hub anônimo para obter o cookie, assim como o browser faz.
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Origin", "https://" + props.getHost());
+            String sessionCookies = obterCookiesDeSessao(props);
+            if (!sessionCookies.isEmpty()) {
+                headers.put("Cookie", sessionCookies);
+                log.debug("Cookies de sessão obtidos para WebSocket: {}", sessionCookies);
+            }
+            this.wsClient = new InternalWsClient(new URI(uri), headers);
             this.wsClient.connectBlocking(props.getConnectionTimeoutMs(), TimeUnit.MILLISECONDS);
 
             // Aguarda sinal de conexão (onOpen ou onError)
@@ -152,6 +169,48 @@ public class QlikWebSocketClient {
     }
 
     // -------------------------------------------------------------------------
+    // Inicialização de sessão anônima
+    // -------------------------------------------------------------------------
+
+    /**
+     * Faz um GET HTTP ao virtual proxy anônimo do Qlik para obter o cookie de sessão.
+     *
+     * <p>O Qlik Sense rejeita conexões WebSocket sem cookie de sessão válido.
+     * O browser obtém esse cookie automaticamente ao carregar o Hub; aqui replicamos
+     * esse comportamento fazendo a requisição HTTP antes de abrir o WebSocket.</p>
+     *
+     * @param props configuração do Qlik (host, virtualProxy)
+     * @return string com os cookies no formato "nome=valor; nome2=valor2", ou vazia se falhar
+     */
+    private String obterCookiesDeSessao(QlikProperties props) {
+        String url = "https://" + props.getHost() + props.getVirtualProxy() + "/";
+        try {
+            // CookieManager captura cookies de todos os redirects da cadeia (/ → /hub/)
+            CookieManager cookieManager = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+            HttpClient httpClient = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.ALWAYS)
+                    .cookieHandler(cookieManager)
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Origin", "https://" + props.getHost())
+                    .header("User-Agent", "Mozilla/5.0 (compatible; resumo-dados-ssd)")
+                    .GET()
+                    .build();
+            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            log.debug("GET {} → HTTP {}", url, response.statusCode());
+
+            String cookies = cookieManager.getCookieStore().getCookies().stream()
+                    .map(c -> c.getName() + "=" + c.getValue())
+                    .collect(Collectors.joining("; "));
+            return cookies;
+        } catch (Exception e) {
+            log.warn("Falha ao obter cookies de sessão Qlik ({}): {}", url, e.getMessage());
+            return "";
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Implementação interna do WebSocketClient (java-websocket)
     // -------------------------------------------------------------------------
 
@@ -163,8 +222,8 @@ public class QlikWebSocketClient {
      */
     private class InternalWsClient extends WebSocketClient {
 
-        public InternalWsClient(URI uri) {
-            super(uri);
+        public InternalWsClient(URI uri, Map<String, String> httpHeaders) {
+            super(uri, httpHeaders);
         }
 
         @Override
