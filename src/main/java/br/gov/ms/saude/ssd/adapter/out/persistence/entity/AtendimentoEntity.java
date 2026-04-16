@@ -34,7 +34,7 @@ public class AtendimentoEntity {
     private Long id;
 
     /** Cartão Nacional de Saúde do paciente (15 dígitos). */
-    @Column(name = "cns_paciente", length = 20)
+    @Column(name = "cns_paciente", length = 50)
     private String cnsPaciente;
 
     /** Data de nascimento do paciente. Convertida de string pelo transformer ETL. */
@@ -53,11 +53,11 @@ public class AtendimentoEntity {
     private String raca;
 
     /** Etnia (aplicável a populações indígenas). */
-    @Column(name = "etnia", length = 80)
+    @Column(name = "etnia", length = 255)
     private String etnia;
 
     /** Nome do município de residência do paciente. */
-    @Column(name = "municipio", length = 100)
+    @Column(name = "municipio", length = 200)
     private String municipio;
 
     /** Código IBGE de 7 dígitos do município. */
@@ -76,7 +76,7 @@ public class AtendimentoEntity {
     private LocalTime hrAgendamento;
 
     /** Nome completo do profissional de saúde responsável. */
-    @Column(name = "nome_medico", length = 150)
+    @Column(name = "nome_medico", length = 500)
     private String nomeMedico;
 
     /** Código CBO (Classificação Brasileira de Ocupações) do profissional. */
@@ -88,15 +88,19 @@ public class AtendimentoEntity {
     private String especialidade;
 
     /** Status da consulta (ex: "AGENDADO", "REALIZADO", "CANCELADO"). */
-    @Column(name = "status_consulta", length = 50)
+    @Column(name = "status_consulta", length = 200)
     private String statusConsulta;
+
+    /** Classificação da conclusão do atendimento (ex: "Com atendimento", "Sem atendimento"). */
+    @Column(name = "classif_conclusao", length = 100)
+    private String classifConclusao;
 
     /** Desfecho clínico registrado pelo profissional ao final do atendimento. */
     @Column(name = "desfecho", length = 4000)
     private String desfecho;
 
     /** Código CID-10 do diagnóstico principal. */
-    @Column(name = "cid", length = 20)
+    @Column(name = "cid", length = 100)
     private String cid;
 
     /** Data e hora em que a solicitação foi gerada no sistema de origem. */
@@ -106,6 +110,70 @@ public class AtendimentoEntity {
     /** Classificação de zona geográfica do paciente (ex: "URBANA", "RURAL"). */
     @Column(name = "tipo_zona", length = 20)
     private String tipoZona;
+
+    /** Modalidade do atendimento (ex: "Teleconsulta", "Teleinterconsulta"). */
+    @Column(name = "tipo_servico", length = 50)
+    private String tipoServico;
+
+    /** Código CNES + nome do estabelecimento (ex: "9318348 - UBSF SEBASTIANA DE BRITO PASCOAL"). */
+    @Column(name = "cnes_estabelecimento", length = 200)
+    private String cnesEstabelecimento;
+
+    /** Identificador do estabelecimento na fonte. */
+    @Column(name = "id_estabelecimento", length = 200)
+    private String idEstabelecimento;
+
+    /** Identificador do médico/profissional na fonte. */
+    @Column(name = "id_medico", length = 100)
+    private String idMedico;
+
+    /** Segunda classificação de raça/cor do paciente. */
+    @Column(name = "classif_cor", length = 50)
+    private String classificCor;
+
+    /** Tipo de conclusão (campo TP_NW_CONCLUSAO da fonte). */
+    @Column(name = "tp_nw_conclusao", length = 50)
+    private String tpNwConclusao;
+
+    /** Identificador de referência do registro no DigSaúde. */
+    @Column(name = "id_digsaude_ref", length = 50)
+    private String idDigsaudeRef;
+
+    /** Telefone de contato do paciente. */
+    @Column(name = "telefone", length = 30)
+    private String telefone;
+
+    /** CEP do endereço do paciente. */
+    @Column(name = "cep_paciente", length = 10)
+    private String cepPaciente;
+
+    /** Logradouro do endereço do paciente. */
+    @Column(name = "rua_paciente", length = 200)
+    private String ruaPaciente;
+
+    /** Número do endereço do paciente. */
+    @Column(name = "num_paciente", length = 20)
+    private String numPaciente;
+
+    /** Bairro do endereço do paciente. */
+    @Column(name = "bairro_paciente", length = 150)
+    private String bairroPaciente;
+
+    /** Complemento do endereço do paciente. */
+    @Column(name = "complemento_end", length = 150)
+    private String complementoEnd;
+
+    /** Descrição textual do endereço. */
+    @Column(name = "descricao_endereco", length = 300)
+    private String descricaoEndereco;
+
+    /** Endereço completo formatado. */
+    @Column(name = "endereco_completo", length = 500)
+    private String enderecoCompleto;
+
+    /** Notas clínicas da consulta (campo DESCRICAO_CONSULTA — 350+ chars). */
+    @Column(name = "descricao_consulta", columnDefinition = "TEXT")
+    private String descricaoConsulta;
 
     /**
      * Corresponde ao campo {@code DT_NEW} da fonte. Usado como watermark
@@ -179,6 +247,9 @@ public class AtendimentoEntity {
     public String getStatusConsulta() { return statusConsulta; }
     public void setStatusConsulta(String statusConsulta) { this.statusConsulta = statusConsulta; }
 
+    public String getClassifConclusao() { return classifConclusao; }
+    public void setClassifConclusao(String classifConclusao) { this.classifConclusao = classifConclusao; }
+
     public String getDesfecho() { return desfecho; }
     public void setDesfecho(String desfecho) { this.desfecho = desfecho; }
 
@@ -190,6 +261,54 @@ public class AtendimentoEntity {
 
     public String getTipoZona() { return tipoZona; }
     public void setTipoZona(String tipoZona) { this.tipoZona = tipoZona; }
+
+    public String getTipoServico() { return tipoServico; }
+    public void setTipoServico(String tipoServico) { this.tipoServico = tipoServico; }
+
+    public String getCnesEstabelecimento() { return cnesEstabelecimento; }
+    public void setCnesEstabelecimento(String cnesEstabelecimento) { this.cnesEstabelecimento = cnesEstabelecimento; }
+
+    public String getIdEstabelecimento() { return idEstabelecimento; }
+    public void setIdEstabelecimento(String idEstabelecimento) { this.idEstabelecimento = idEstabelecimento; }
+
+    public String getIdMedico() { return idMedico; }
+    public void setIdMedico(String idMedico) { this.idMedico = idMedico; }
+
+    public String getClassificCor() { return classificCor; }
+    public void setClassificCor(String classificCor) { this.classificCor = classificCor; }
+
+    public String getTpNwConclusao() { return tpNwConclusao; }
+    public void setTpNwConclusao(String tpNwConclusao) { this.tpNwConclusao = tpNwConclusao; }
+
+    public String getIdDigsaudeRef() { return idDigsaudeRef; }
+    public void setIdDigsaudeRef(String idDigsaudeRef) { this.idDigsaudeRef = idDigsaudeRef; }
+
+    public String getTelefone() { return telefone; }
+    public void setTelefone(String telefone) { this.telefone = telefone; }
+
+    public String getCepPaciente() { return cepPaciente; }
+    public void setCepPaciente(String cepPaciente) { this.cepPaciente = cepPaciente; }
+
+    public String getRuaPaciente() { return ruaPaciente; }
+    public void setRuaPaciente(String ruaPaciente) { this.ruaPaciente = ruaPaciente; }
+
+    public String getNumPaciente() { return numPaciente; }
+    public void setNumPaciente(String numPaciente) { this.numPaciente = numPaciente; }
+
+    public String getBairroPaciente() { return bairroPaciente; }
+    public void setBairroPaciente(String bairroPaciente) { this.bairroPaciente = bairroPaciente; }
+
+    public String getComplementoEnd() { return complementoEnd; }
+    public void setComplementoEnd(String complementoEnd) { this.complementoEnd = complementoEnd; }
+
+    public String getDescricaoEndereco() { return descricaoEndereco; }
+    public void setDescricaoEndereco(String descricaoEndereco) { this.descricaoEndereco = descricaoEndereco; }
+
+    public String getEnderecoCompleto() { return enderecoCompleto; }
+    public void setEnderecoCompleto(String enderecoCompleto) { this.enderecoCompleto = enderecoCompleto; }
+
+    public String getDescricaoConsulta() { return descricaoConsulta; }
+    public void setDescricaoConsulta(String descricaoConsulta) { this.descricaoConsulta = descricaoConsulta; }
 
     public LocalDateTime getDtCriacao() { return dtCriacao; }
     public void setDtCriacao(LocalDateTime dtCriacao) { this.dtCriacao = dtCriacao; }

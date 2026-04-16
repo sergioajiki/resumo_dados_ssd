@@ -151,11 +151,28 @@ public class ConsultarAtendimentosService implements ConsultarAtendimentosUseCas
                 e.getCboMedico(),
                 e.getEspecialidade(),
                 e.getStatusConsulta(),
+                e.getClassifConclusao(),
                 e.getDesfecho(),
                 e.getCid(),
                 e.getDtSolicitacao(),
                 e.getTipoZona(),
-                e.getDtCriacao()
+                e.getTipoServico(),
+                e.getDtCriacao(),
+                e.getCnesEstabelecimento(),
+                e.getIdEstabelecimento(),
+                e.getIdMedico(),
+                e.getClassificCor(),
+                e.getTpNwConclusao(),
+                e.getIdDigsaudeRef(),
+                e.getTelefone(),
+                e.getCepPaciente(),
+                e.getRuaPaciente(),
+                e.getNumPaciente(),
+                e.getBairroPaciente(),
+                e.getComplementoEnd(),
+                e.getDescricaoEndereco(),
+                e.getEnderecoCompleto(),
+                e.getDescricaoConsulta()
         );
     }
 }

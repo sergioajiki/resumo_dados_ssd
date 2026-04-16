@@ -24,7 +24,7 @@ public class ProfissionalEntity {
     private Long id;
 
     /** Nome completo do profissional de saúde. */
-    @Column(name = "nome", length = 150)
+    @Column(name = "nome", length = 500)
     private String nome;
 
     /** Número do CRM (pode conter letras do estado, ex: "12345/MS"). */
