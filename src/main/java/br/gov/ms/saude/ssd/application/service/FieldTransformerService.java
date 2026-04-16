@@ -206,6 +206,26 @@ public class FieldTransformerService {
                 || str.equalsIgnoreCase("S/I")) {
             return null;
         }
+        // Campos concatenados do Qlik que ficam só com separadores quando a fonte é vazia
+        // Ex: ENDERECO_COMPLETO = "," ou ", , ," quando rua/num/bairro são nulos
+        if (str.chars().allMatch(c -> c == ',' || c == ' ' || c == '/' || c == '-')) {
+            return null;
+        }
+        return str;
+    }
+
+    /**
+     * Normaliza um valor de CNS, retornando {@code null} para strings all-zeros
+     * usadas pelo Qlik como sentinela de "CNS desconhecido".
+     *
+     * @param value valor bruto do campo CNS_PACIENTE
+     * @return CNS normalizado, ou {@code null} se ausente ou sentinela
+     */
+    public String asCns(Object value) {
+        String str = asString(value);
+        if (str == null) return null;
+        // Strings compostas só de zeros são sentinelas Qlik para "CNS desconhecido"
+        if (!str.isEmpty() && str.chars().allMatch(c -> c == '0')) return null;
         return str;
     }
 

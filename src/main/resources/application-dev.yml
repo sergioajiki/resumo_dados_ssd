@@ -69,12 +69,12 @@ datasource:
   # Variáveis de ambiente:
   #   QLIK_HOST    → hostname do servidor (padrão: paineispublicos.saude.ms.gov.br)
   #   QLIK_APP_ID  → UUID do app Qlik (obrigatório para adapter=qlik-engine)
-  #   QLIK_VIRTUAL_PROXY → prefixo do virtual proxy anônimo (padrão: /anon)
+  #   QLIK_VIRTUAL_PROXY → prefixo do virtual proxy (padrão: vazio = proxy raiz)
   # ---------------------------------------------------------------------------
   qlik:
     host: ${QLIK_HOST:paineispublicos.saude.ms.gov.br}
     app-id: ${QLIK_APP_ID:}
-    virtual-proxy: ${QLIK_VIRTUAL_PROXY:/anon}
+    virtual-proxy: ${QLIK_VIRTUAL_PROXY:}
     connection-timeout-ms: ${QLIK_CONNECT_TIMEOUT_MS:10000}
     read-timeout-ms: ${QLIK_READ_TIMEOUT_MS:30000}
     page-size: ${QLIK_PAGE_SIZE:5000}

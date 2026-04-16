@@ -61,11 +61,13 @@ public class DataSourceConfig {
     @Bean
     @Primary
     public DataSourcePort activeDataSourcePort(Map<String, DataSourcePort> adapters) {
-        var adapter = adapters.get(adapterName + "Adapter");
-        if (adapter == null) {
-            // tenta sem sufixo, para nomes de bean personalizados
-            adapter = adapters.get(adapterName);
-        }
+        // Normaliza kebab-case → camelCase para o lookup do bean
+        // Ex.: "qlik-engine" → "qlikEngine" → busca "qlikEngineAdapter"
+        String beanBaseName = toBeanBaseName(adapterName);
+        var adapter = adapters.get(beanBaseName + "Adapter");
+        if (adapter == null) adapter = adapters.get(beanBaseName);
+        if (adapter == null) adapter = adapters.get(adapterName + "Adapter");
+        if (adapter == null) adapter = adapters.get(adapterName);
         if (adapter == null) {
             throw new IllegalStateException(
                 "Nenhum DataSourcePort encontrado para datasource.adapter='" + adapterName +
@@ -73,6 +75,22 @@ public class DataSourceConfig {
         }
         log.info("DataSourcePort ativo: {} ({})", adapterName, adapter.getClass().getSimpleName());
         return adapter;
+    }
+
+    /**
+     * Converte kebab-case em camelCase para localizar o bean pelo nome.
+     * "qlik-engine" → "qlikEngine", "mock" → "mock", "qlik-rest" → "qlikRest"
+     */
+    private String toBeanBaseName(String name) {
+        String[] parts = name.split("-");
+        StringBuilder sb = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].isEmpty()) {
+                sb.append(Character.toUpperCase(parts[i].charAt(0)));
+                sb.append(parts[i].substring(1));
+            }
+        }
+        return sb.toString();
     }
 
 }
