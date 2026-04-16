@@ -2,7 +2,6 @@ package br.gov.ms.saude.ssd.application.service;
 
 import br.gov.ms.saude.ssd.application.usecase.ExecutarSyncUseCase;
 import br.gov.ms.saude.ssd.config.SyncProperties;
-import br.gov.ms.saude.ssd.domain.exception.DataSourceUnavailableException;
 import br.gov.ms.saude.ssd.domain.exception.SyncAlreadyRunningException;
 import br.gov.ms.saude.ssd.domain.model.ExtractOptions;
 import br.gov.ms.saude.ssd.domain.model.ExtractResult;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -66,11 +64,22 @@ public class SyncService implements ExecutarSyncUseCase {
      * Campos a extrair da tabela DB_DIGSAUDE.
      * Extrair apenas os campos necessários reduz o volume de dados transferido.
      */
+    /**
+     * Todos os campos de atendimento extraídos em passagem única.
+     * Caso DESFECHO ou CID voltem a 0% no SYNC_DIAGNOSTICO após a sync,
+     * reverter para 4 passagens separadas (join implícito do Qlik corrompendo os campos).
+     */
     private static final List<String> CAMPOS_ATENDIMENTO = List.of(
             "ID_ATENDIMENTO", "CNS_PACIENTE", "DT_NASC_PACIENTE", "RACA_PACIENTE",
             "ETNIA", "NOME_MUNICIPIO", "IBGE_ATEND", "DT_AGENDAMENTO", "HR_AGENDAMENTO",
-            "NOME_MEDICO", "CBO_MEDICO", "STATUS_CONSULTA", "DESFECHO_ATEND",
-            "CID_CONSULTA", "DT_SOLICITACAO", "TIPO_ZONA", "DT_NEW"
+            "NOME_MEDICO", "CBO_MEDICO", "STATUS_CONSULTA", "CLASSIF_CONCLUSAO",
+            "TIPO_SERV_ID", "DESFECHO_ATEND", "CID_CONSULTA", "DT_SOLICITACAO",
+            "TIPO_ZONA", "DT_NEW",
+            "ID_ESTABELECIMENTO", "CNES_NESTABELECIMENTO", "ID_MEDICO",
+            "CLASSFIC_COR", "TP_NW_CONCLUSAO", "ID_DIGSAUDE_REF",
+            "TELEFONE", "CEP_PACIENTE", "RUA_PACIENTE", "NUM_PACIENTE",
+            "BAIRRO_PACIENTE", "COMPLEMENTO_END_PACIENTE", "DESCRICAO_ENDERECO",
+            "ENDERECO_COMPLETO", "DESCRICAO_CONSULTA"
     );
 
     /** Campos a extrair da tabela TEMPDB_USER. */
@@ -220,6 +229,11 @@ public class SyncService implements ExecutarSyncUseCase {
             int carregados = isAtendimento
                     ? loaderService.carregarAtendimentos(result)
                     : loaderService.carregarProfissionais(result);
+
+            if (isAtendimento) {
+                // DIAGNÓSTICO — persiste contagens no banco e loga resumo
+                loaderService.registrarDiagnostico(tabelaH2);
+            }
 
             SyncLog logConcluido = logIniciado.concluido(result.totalExtraidos(), carregados, 0);
             syncRepositoryPort.recordSync(logConcluido);

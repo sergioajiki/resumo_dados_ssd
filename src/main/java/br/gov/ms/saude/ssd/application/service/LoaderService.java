@@ -2,8 +2,10 @@ package br.gov.ms.saude.ssd.application.service;
 
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.AtendimentoEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.ProfissionalEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.SyncDiagnosticoEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.AtendimentoRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.ProfissionalRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.SyncDiagnosticoRepository;
 import br.gov.ms.saude.ssd.domain.model.ExtractResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,20 +42,24 @@ public class LoaderService {
 
     private final AtendimentoRepository atendimentoRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final SyncDiagnosticoRepository syncDiagnosticoRepository;
     private final FieldTransformerService transformer;
 
     /**
      * Injeta os repositórios e o serviço de transformação via construtor.
      *
-     * @param atendimentoRepository repositório de atendimentos
-     * @param profissionalRepository repositório de profissionais
-     * @param transformer serviço de transformação de campos
+     * @param atendimentoRepository    repositório de atendimentos
+     * @param profissionalRepository   repositório de profissionais
+     * @param syncDiagnosticoRepository repositório de diagnóstico de sync
+     * @param transformer              serviço de transformação de campos
      */
     public LoaderService(AtendimentoRepository atendimentoRepository,
                          ProfissionalRepository profissionalRepository,
+                         SyncDiagnosticoRepository syncDiagnosticoRepository,
                          FieldTransformerService transformer) {
         this.atendimentoRepository = atendimentoRepository;
         this.profissionalRepository = profissionalRepository;
+        this.syncDiagnosticoRepository = syncDiagnosticoRepository;
         this.transformer = transformer;
     }
 
@@ -146,6 +152,33 @@ public class LoaderService {
         return total;
     }
 
+    /**
+     * Registra na tabela {@code sync_diagnostico} as contagens de campos-chave
+     * logo após a conclusão de todas as passagens de uma sync de atendimentos.
+     *
+     * <p>Campos auditados: desfecho, cid, tp_nw_conclusao, cnes_estabelecimento,
+     * endereco_completo, descricao_consulta.</p>
+     *
+     * <p>Consultar: {@code SELECT * FROM SYNC_DIAGNOSTICO ORDER BY DT_SYNC DESC}</p>
+     *
+     * @param tabela nome da tabela de destino (ex: "atendimento")
+     */
+    @Transactional
+    public void registrarDiagnostico(String tabela) {
+        long total = atendimentoRepository.count();
+        List<SyncDiagnosticoEntity> rows = List.of(
+                SyncDiagnosticoEntity.of(tabela, "desfecho",              total, atendimentoRepository.countByDesfechoIsNotNull()),
+                SyncDiagnosticoEntity.of(tabela, "cid",                   total, atendimentoRepository.countByCidIsNotNull()),
+                SyncDiagnosticoEntity.of(tabela, "tp_nw_conclusao",       total, atendimentoRepository.countByTpNwConclusaoIsNotNull()),
+                SyncDiagnosticoEntity.of(tabela, "cnes_estabelecimento",  total, atendimentoRepository.countByCnesEstabelecimentoIsNotNull()),
+                SyncDiagnosticoEntity.of(tabela, "endereco_completo",     total, atendimentoRepository.countByEnderecoCompletoIsNotNull()),
+                SyncDiagnosticoEntity.of(tabela, "descricao_consulta",    total, atendimentoRepository.countByDescricaoConsultaIsNotNull())
+        );
+        syncDiagnosticoRepository.saveAll(rows);
+        rows.forEach(r -> log.info("DIAG {}.{}: {}/{} ({}%)",
+                r.getTabela(), r.getCampo(), r.getNaoNulos(), r.getTotal(), r.getPercentual()));
+    }
+
     // -------------------------------------------------------------------------
     // Mapeamento de linhas para entidades
     // -------------------------------------------------------------------------
@@ -169,7 +202,7 @@ public class LoaderService {
         }
 
         AtendimentoEntity e = new AtendimentoEntity(id);
-        e.setCnsPaciente(transformer.asString(get(headers, row, "CNS_PACIENTE")));
+        e.setCnsPaciente(transformer.asCns(get(headers, row, "CNS_PACIENTE")));
         e.setDtNascimento(transformer.parseDate(get(headers, row, "DT_NASC_PACIENTE")));
         e.setRaca(transformer.asString(get(headers, row, "RACA_PACIENTE")));
         e.setEtnia(transformer.asString(get(headers, row, "ETNIA")));
@@ -180,11 +213,31 @@ public class LoaderService {
         e.setNomeMedico(transformer.asString(get(headers, row, "NOME_MEDICO")));
         e.setCboMedico(transformer.asString(get(headers, row, "CBO_MEDICO")));
         e.setStatusConsulta(transformer.asString(get(headers, row, "STATUS_CONSULTA")));
+        e.setClassifConclusao(transformer.asString(get(headers, row, "CLASSIF_CONCLUSAO")));
+
         e.setDesfecho(transformer.asString(get(headers, row, "DESFECHO_ATEND")));
         e.setCid(transformer.asString(get(headers, row, "CID_CONSULTA")));
         e.setDtSolicitacao(transformer.parseDateTime(get(headers, row, "DT_SOLICITACAO")));
         e.setTipoZona(transformer.asString(get(headers, row, "TIPO_ZONA")));
+        e.setTipoServico(transformer.asString(get(headers, row, "TIPO_SERV_ID")));
         e.setDtCriacao(transformer.parseDateTime(get(headers, row, "DT_NEW")));
+
+        // Todos os campos mapeados em passagem única
+        e.setCnesEstabelecimento(transformer.asString(get(headers, row, "CNES_NESTABELECIMENTO")));
+        e.setIdEstabelecimento(transformer.asString(get(headers, row, "ID_ESTABELECIMENTO")));
+        e.setIdMedico(transformer.asString(get(headers, row, "ID_MEDICO")));
+        e.setClassificCor(transformer.asString(get(headers, row, "CLASSFIC_COR")));
+        e.setTpNwConclusao(transformer.asString(get(headers, row, "TP_NW_CONCLUSAO")));
+        e.setIdDigsaudeRef(transformer.asString(get(headers, row, "ID_DIGSAUDE_REF")));
+        e.setTelefone(transformer.asString(get(headers, row, "TELEFONE")));
+        e.setCepPaciente(transformer.asString(get(headers, row, "CEP_PACIENTE")));
+        e.setRuaPaciente(transformer.asString(get(headers, row, "RUA_PACIENTE")));
+        e.setNumPaciente(transformer.asString(get(headers, row, "NUM_PACIENTE")));
+        e.setBairroPaciente(transformer.asString(get(headers, row, "BAIRRO_PACIENTE")));
+        e.setComplementoEnd(transformer.asString(get(headers, row, "COMPLEMENTO_END_PACIENTE")));
+        e.setDescricaoEndereco(transformer.asString(get(headers, row, "DESCRICAO_ENDERECO")));
+        e.setEnderecoCompleto(transformer.asString(get(headers, row, "ENDERECO_COMPLETO")));
+        e.setDescricaoConsulta(transformer.asString(get(headers, row, "DESCRICAO_CONSULTA")));
 
         // Faixa etária calculada a partir da data de nascimento
         e.setFaixaEtaria(transformer.calcularFaixaEtaria(e.getDtNascimento()));

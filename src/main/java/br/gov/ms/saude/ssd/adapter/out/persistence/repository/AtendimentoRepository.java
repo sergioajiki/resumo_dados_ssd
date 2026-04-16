@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -134,13 +133,21 @@ public interface AtendimentoRepository extends JpaRepository<AtendimentoEntity, 
             @Param("dataInicio") LocalDate dataInicio,
             @Param("dataFim") LocalDate dataFim);
 
-    /**
-     * Verifica se existe ao menos um atendimento com {@code dtCriacao} posterior
-     * ao watermark informado. Usado para decidir se há dados novos antes de
-     * iniciar uma extração incremental completa.
-     *
-     * @param watermark data/hora de referência
-     * @return {@code true} se existirem registros mais recentes que o watermark
-     */
-    boolean existsByDtCriacaoAfter(LocalDateTime watermark);
+    /** DIAGNÓSTICO — contar registros com desfecho preenchido. */
+    long countByDesfechoIsNotNull();
+
+    /** DIAGNÓSTICO — contar registros com CID preenchido. */
+    long countByCidIsNotNull();
+
+    /** DIAGNÓSTICO — contar registros com tipo de conclusão preenchido (V10). */
+    long countByTpNwConclusaoIsNotNull();
+
+    /** DIAGNÓSTICO — contar registros com CNES de estabelecimento preenchido (V10). */
+    long countByCnesEstabelecimentoIsNotNull();
+
+    /** DIAGNÓSTICO — contar registros com endereço completo preenchido. */
+    long countByEnderecoCompletoIsNotNull();
+
+    /** DIAGNÓSTICO — contar registros com descrição de consulta preenchida. */
+    long countByDescricaoConsultaIsNotNull();
 }
