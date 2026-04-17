@@ -1,0 +1,251 @@
+================================================================================
+  RESUMO-DADOS-SSD — Endpoints GET disponíveis
+  Base URL: http://localhost:8080
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+1. ATENDIMENTOS
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/atendimentos
+  Descrição : Lista paginada de atendimentos com filtros opcionais.
+  Parâmetros (todos opcionais):
+    municipio      string   Nome do município (parcial, sem distinção de maiúsculas)
+    dataInicio     date     Data início dd/MM/yyyy
+    dataFim        date     Data fim dd/MM/yyyy
+    especialidade  string   Especialidade médica (parcial)
+    statusConsulta string   Status da consulta (exato)
+    faixaEtaria    string   Ex: "0-17", "18-29", "30-59", "60+"
+    racaPaciente   string   Raça/cor do paciente
+    page           int      Número da página (zero-based, padrão: 0)
+    size           int      Registros por página (padrão: 20)
+    sort           string   Campo de ordenação (padrão: dtAgendamento)
+
+  Saída: objeto de paginação Spring
+  {
+    "content": [
+      {
+        "id":                  number,
+        "cnsPaciente":         string,        // 15 dígitos
+        "dtNascimento":        "YYYY-MM-DD",
+        "faixaEtaria":         string,        // "0-17" | "18-29" | "30-59" | "60+"
+        "raca":                string,
+        "etnia":               string,
+        "municipio":           string,
+        "ibge":                string,        // código IBGE 7 dígitos
+        "dtAgendamento":       "YYYY-MM-DDTHH:MM:SS",
+        "hrAgendamento":       "HH:MM:SS",
+        "nomeMedico":          string,
+        "cboCodigo":           string,
+        "especialidade":       string,
+        "statusConsulta":      string,
+        "classifConclusao":    string,
+        "desfecho":            string,
+        "cid":                 string,        // código CID-10
+        "dtSolicitacao":       "YYYY-MM-DDTHH:MM:SS",
+        "tipoZona":            string,        // "Urbana" | "Rural"
+        "tipoServico":         string,
+        "dtCriacao":           "YYYY-MM-DDTHH:MM:SS",
+        "cnesEstabelecimento": string,        // 7 dígitos
+        "idEstabelecimento":   string,
+        "idMedico":            string,
+        "classificCor":        string,
+        "tpNwConclusao":       string,
+        "idDigsaudeRef":       string,
+        "telefone":            string,
+        "cepPaciente":         string,
+        "ruaPaciente":         string,
+        "numPaciente":         string,
+        "bairroPaciente":      string,
+        "complementoEnd":      string,
+        "descricaoEndereco":   string,
+        "enderecoCompleto":    string,
+        "descricaoConsulta":   string
+      }
+    ],
+    "totalElements": number,
+    "totalPages":    number,
+    "size":          number,
+    "number":        number,   // página atual
+    "first":         boolean,
+    "last":          boolean
+  }
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/atendimentos/{id}
+  Descrição : Busca um atendimento pelo ID.
+  Parâmetros:
+    id  number  (path) Identificador do atendimento
+
+  Saída: objeto único (mesmo formato do item dentro de "content" acima)
+  {
+    "id": number,
+    "cnsPaciente": string,
+    ... (todos os campos de AtendimentoDTO)
+  }
+
+  Erro 404: atendimento não encontrado
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/atendimentos/resumo
+  Descrição : KPIs — contagem de atendimentos agrupada por dimensão.
+  Parâmetros (todos opcionais, mesmos filtros do /atendimentos):
+    municipio, dataInicio, dataFim, especialidade, statusConsulta
+
+  Saída:
+  {
+    "porMunicipio": {
+      "Campo Grande": number,
+      "Dourados":     number,
+      ...
+    },
+    "porEspecialidade": {
+      "Cardiologia": number,
+      "Pediatria":   number,
+      ...
+    },
+    "porStatus": {
+      "Realizado":  number,
+      "Cancelado":  number,
+      "Agendado":   number,
+      ...
+    }
+  }
+
+
+────────────────────────────────────────────────────────────────────────────────
+2. SINCRONIZAÇÃO
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/sync/status
+  Descrição : Status da última sync das tabelas principais (atendimento e profissional).
+
+  Saída:
+  {
+    "atendimento": {
+      "tabela":               string,
+      "status":               "SUCCESS" | "FAILED" | "PARTIAL" | "RUNNING",
+      "iniciadoEm":           "YYYY-MM-DDTHH:MM:SS",
+      "concluidoEm":          "YYYY-MM-DDTHH:MM:SS",
+      "registrosExtraidos":   number,
+      "registrosNovos":       number,
+      "registrosAtualizados": number,
+      "erro":                 string | null,
+      "duracaoFormatada":     string        // ex: "1m 23s"
+    },
+    "profissional": { ...mesmo formato... }
+  }
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/sync/history/{tabela}
+  Descrição : Histórico da última sync de uma tabela específica.
+  Parâmetros:
+    tabela  string  (path) Nome da tabela: atendimento | profissional | link |
+                           municipio_piloto | municipio_sem_atividade |
+                           munaprov_piloto | maps_off | jornada_vagas
+
+  Saída: array com o registro da última sync (vazio se nunca sincronizada)
+  [
+    {
+      "tabela":               string,
+      "status":               "SUCCESS" | "FAILED" | "PARTIAL" | "RUNNING",
+      "iniciadoEm":           "YYYY-MM-DDTHH:MM:SS",
+      "concluidoEm":          "YYYY-MM-DDTHH:MM:SS",
+      "registrosExtraidos":   number,
+      "registrosNovos":       number,
+      "registrosAtualizados": number,
+      "erro":                 string | null,
+      "duracaoFormatada":     string        // ex: "0m 45s"
+    }
+  ]
+
+
+────────────────────────────────────────────────────────────────────────────────
+3. SCHEMA E SAÚDE DA FONTE
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/health
+  Descrição : Verifica disponibilidade e latência da conexão com a fonte (Qlik ou mock).
+
+  Saída:
+  {
+    "status":         "UP" | "DOWN" | "DEGRADED",
+    "latencyMs":      number,    // -1 se não foi possível medir
+    "message":        string,
+    "checkedAt":      "YYYY-MM-DDTHH:MM:SS",
+    "adaptadorAtivo": string     // "qlik-engine" | "mock"
+  }
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/schema
+  Descrição : Retorna o schema completo da fonte de dados (consulta em tempo real).
+
+  Saída:
+  {
+    "tabelas": [
+      {
+        "nome":           string,
+        "totalRegistros": number,
+        "campos": [
+          {
+            "nome":         string,
+            "tipo":         string,   // "INTEGER" | "TEXT" | "DATETIME" | "DECIMAL"
+            "cardinalidade": number,
+            "primaryKey":   boolean,
+            "valores":      []
+          }
+        ]
+      }
+    ]
+  }
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/schema/tabelas
+  Descrição : Lista os nomes de todas as tabelas disponíveis na fonte.
+
+  Saída:
+  [
+    "DB_DIGSAUDE",
+    "TEMPDB_USER",
+    "USERJORNADA",
+    ...
+  ]
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/schema/campos?tabela={nome}
+  Descrição : Lista os nomes dos campos de uma tabela específica na fonte.
+  Parâmetros:
+    tabela  string  (query) Nome da tabela Qlik (padrão: "DB_DIGSAUDE")
+
+  Saída:
+  [
+    "ID_ATENDIMENTO",
+    "CNS_PACIENTE",
+    "DT_NASC_PACIENTE",
+    ...
+  ]
+
+────────────────────────────────────────────────────────────────────────────────
+
+GET /api/v1/schema/metadata
+  Descrição : Metadados descritivos do app/dataset na fonte de dados.
+
+  Saída:
+  {
+    "id":           string,   // app-id do Qlik
+    "nome":         string,
+    "descricao":    string,
+    "ultimoReload": "YYYY-MM-DDTHH:MM:SS"
+  }
+
+
+================================================================================
+  Documentação interativa (Swagger): http://localhost:8080/swagger-ui.html
+================================================================================
