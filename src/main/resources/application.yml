@@ -108,3 +108,5 @@ sync:
   # Campo do dataset Qlik usado como marca d'água (watermark) para sync incremental.
   # Representa a data/hora de criação/atualização do registro na fonte.
   watermark-field: DT_NEW
+
+

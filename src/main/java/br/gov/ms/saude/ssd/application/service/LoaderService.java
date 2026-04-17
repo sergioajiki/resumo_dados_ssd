@@ -1,9 +1,21 @@
 package br.gov.ms.saude.ssd.application.service;
 
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.AtendimentoEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.JornadaVagasEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.LinkEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MapsOffEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MunaprovPilotoEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MunicipioPilotoEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MunicipioSemAtividadeEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.ProfissionalEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.SyncDiagnosticoEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.AtendimentoRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.JornadaVagasRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.LinkRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.MapsOffRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.MunaprovPilotoRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.MunicipioPilotoRepository;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.MunicipioSemAtividadeRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.ProfissionalRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.SyncDiagnosticoRepository;
 import br.gov.ms.saude.ssd.domain.model.ExtractResult;
@@ -42,23 +54,47 @@ public class LoaderService {
 
     private final AtendimentoRepository atendimentoRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final JornadaVagasRepository jornadaVagasRepository;
+    private final MunicipioPilotoRepository municipioPilotoRepository;
+    private final MunicipioSemAtividadeRepository municipioSemAtividadeRepository;
+    private final LinkRepository linkRepository;
+    private final MunaprovPilotoRepository munaprovPilotoRepository;
+    private final MapsOffRepository mapsOffRepository;
     private final SyncDiagnosticoRepository syncDiagnosticoRepository;
     private final FieldTransformerService transformer;
 
     /**
      * Injeta os repositórios e o serviço de transformação via construtor.
      *
-     * @param atendimentoRepository    repositório de atendimentos
-     * @param profissionalRepository   repositório de profissionais
-     * @param syncDiagnosticoRepository repositório de diagnóstico de sync
-     * @param transformer              serviço de transformação de campos
+     * @param atendimentoRepository           repositório de atendimentos
+     * @param profissionalRepository          repositório de profissionais
+     * @param jornadaVagasRepository          repositório de jornadas/vagas
+     * @param municipioPilotoRepository       repositório de municípios piloto
+     * @param municipioSemAtividadeRepository repositório de municípios sem atividade
+     * @param linkRepository                  repositório de link
+     * @param munaprovPilotoRepository        repositório de munaprov_piloto
+     * @param mapsOffRepository               repositório de maps_off
+     * @param syncDiagnosticoRepository       repositório de diagnóstico de sync
+     * @param transformer                     serviço de transformação de campos
      */
     public LoaderService(AtendimentoRepository atendimentoRepository,
                          ProfissionalRepository profissionalRepository,
+                         JornadaVagasRepository jornadaVagasRepository,
+                         MunicipioPilotoRepository municipioPilotoRepository,
+                         MunicipioSemAtividadeRepository municipioSemAtividadeRepository,
+                         LinkRepository linkRepository,
+                         MunaprovPilotoRepository munaprovPilotoRepository,
+                         MapsOffRepository mapsOffRepository,
                          SyncDiagnosticoRepository syncDiagnosticoRepository,
                          FieldTransformerService transformer) {
         this.atendimentoRepository = atendimentoRepository;
         this.profissionalRepository = profissionalRepository;
+        this.jornadaVagasRepository = jornadaVagasRepository;
+        this.municipioPilotoRepository = municipioPilotoRepository;
+        this.municipioSemAtividadeRepository = municipioSemAtividadeRepository;
+        this.linkRepository = linkRepository;
+        this.munaprovPilotoRepository = munaprovPilotoRepository;
+        this.mapsOffRepository = mapsOffRepository;
         this.syncDiagnosticoRepository = syncDiagnosticoRepository;
         this.transformer = transformer;
     }
@@ -149,6 +185,47 @@ public class LoaderService {
         }
 
         log.info("Carga de profissionais concluída: {} registros persistidos.", total);
+        return total;
+    }
+
+    /**
+     * Carrega jornadas/vagas do {@link ExtractResult} no banco H2.
+     *
+     * <p>Segue a mesma estratégia de batch e upsert de {@link #carregarProfissionais}.</p>
+     *
+     * @param result resultado da extração de jornadas/vagas
+     * @return contagem de registros persistidos
+     */
+    @Transactional
+    public int carregarJornadaVagas(ExtractResult result) {
+        if (result.isEmpty()) {
+            log.info("Nenhuma jornada/vaga a carregar.");
+            return 0;
+        }
+
+        List<String> headers = result.headers();
+        List<JornadaVagasEntity> batch = new ArrayList<>(BATCH_SIZE);
+        int total = 0;
+
+        for (List<Object> row : result.rows()) {
+            JornadaVagasEntity entity = mapJornadaVagas(headers, row);
+            if (entity == null) continue;
+
+            batch.add(entity);
+
+            if (batch.size() >= BATCH_SIZE) {
+                jornadaVagasRepository.saveAll(batch);
+                total += batch.size();
+                batch.clear();
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            jornadaVagasRepository.saveAll(batch);
+            total += batch.size();
+        }
+
+        log.info("Carga de jornadas/vagas concluída: {} registros persistidos.", total);
         return total;
     }
 
@@ -269,6 +346,264 @@ public class LoaderService {
         e.setFaixaEtaria(transformer.asString(get(headers, row, "RANGE_IDADE")));
         e.setRacaCor(transformer.asString(get(headers, row, "RACA_COR_USER")));
 
+        return e;
+    }
+
+    /**
+     * Mapeia uma linha de dados do Qlik para {@link JornadaVagasEntity}.
+     *
+     * @param headers lista de nomes de campos (ex: ["ID_JORNADA", "ID_USER", ...])
+     * @param row     valores correspondentes aos headers
+     * @return entidade mapeada, ou {@code null} se o ID for inválido
+     */
+    private JornadaVagasEntity mapJornadaVagas(List<String> headers, List<Object> row) {
+        Long id = transformer.asLong(get(headers, row, "ID_JORNADA"));
+        if (id == null) {
+            log.warn("Linha ignorada: ID_JORNADA inválido — {}", row);
+            return null;
+        }
+
+        JornadaVagasEntity e = new JornadaVagasEntity(id);
+        e.setProfissionalId(transformer.asLong(get(headers, row, "ID_USER_JORND")));
+        e.setDtAtendimento(transformer.parseDate(get(headers, row, "DT_ATENDIMENTO")));
+
+        Long ano   = transformer.asLong(get(headers, row, "ANO_VAGAS"));
+        Long mes   = transformer.asLong(get(headers, row, "MES_NUM_VAGAS"));
+        Long vagas = transformer.asLong(get(headers, row, "VAGAS"));
+        e.setAno(ano   != null ? ano.intValue()   : null);
+        e.setMes(mes   != null ? mes.intValue()   : null);
+        e.setVagas(vagas != null ? vagas.intValue() : null);
+
+        return e;
+    }
+
+    /**
+     * Carrega municípios piloto do {@link ExtractResult} no banco H2.
+     *
+     * <p>Estratégia truncate-reload: apaga todos os registros anteriores e reinsere.
+     * Seguro porque a tabela {@code municipio_piloto} não é referenciada por FK externas.</p>
+     *
+     * @param result resultado da extração de {@code MUN_PILOTO}
+     * @return contagem de registros carregados
+     */
+    @Transactional
+    public int carregarMunicipiosPiloto(ExtractResult result) {
+        municipioPilotoRepository.deleteAllInBatch();
+
+        if (result.isEmpty()) {
+            log.info("Nenhum município piloto a carregar.");
+            return 0;
+        }
+
+        List<String> headers = result.headers();
+        List<MunicipioPilotoEntity> entidades = new ArrayList<>();
+
+        for (List<Object> row : result.rows()) {
+            MunicipioPilotoEntity entity = mapMunicipioPiloto(headers, row);
+            if (entity != null) entidades.add(entity);
+        }
+
+        municipioPilotoRepository.saveAll(entidades);
+        log.info("municipio_piloto: {} registros carregados.", entidades.size());
+        return entidades.size();
+    }
+
+    /**
+     * Carrega municípios sem atividade do {@link ExtractResult} no banco H2.
+     *
+     * <p>Estratégia truncate-reload. Campos assumidos no Qlik {@code MUN_SEMATIVIDADE}:
+     * {@code COD_IBGE} e {@code MUNICIPIO}. Verificar via
+     * {@code GET /api/v1/schema/campos?tabela=MUN_SEMATIVIDADE} se os nomes divergirem.</p>
+     *
+     * @param result resultado da extração de {@code MUN_SEMATIVIDADE}
+     * @return contagem de registros carregados
+     */
+    @Transactional
+    public int carregarMunicipiosSemAtividade(ExtractResult result) {
+        municipioSemAtividadeRepository.deleteAllInBatch();
+
+        if (result.isEmpty()) {
+            log.info("Nenhum município sem atividade a carregar.");
+            return 0;
+        }
+
+        List<String> headers = result.headers();
+        List<MunicipioSemAtividadeEntity> entidades = new ArrayList<>();
+
+        for (List<Object> row : result.rows()) {
+            MunicipioSemAtividadeEntity entity = mapMunicipioSemAtividade(headers, row);
+            if (entity != null) entidades.add(entity);
+        }
+
+        municipioSemAtividadeRepository.saveAll(entidades);
+        log.info("municipio_sem_atividade: {} registros carregados.", entidades.size());
+        return entidades.size();
+    }
+
+    /**
+     * Mapeia uma linha de {@code MUN_PILOTO} para {@link MunicipioPilotoEntity}.
+     *
+     * @param headers lista de nomes de campos
+     * @param row     valores correspondentes
+     * @return entidade mapeada, ou {@code null} se o nome do município for inválido
+     */
+    private MunicipioPilotoEntity mapMunicipioPiloto(List<String> headers, List<Object> row) {
+        String nome = transformer.asString(get(headers, row, "MUNICIPIO"));
+        if (nome == null || nome.isBlank()) {
+            log.warn("Linha ignorada: MUNICIPIO inválido — {}", row);
+            return null;
+        }
+
+        MunicipioPilotoEntity e = new MunicipioPilotoEntity();
+        e.setNome(nome);
+        String pilotoStr = transformer.asString(get(headers, row, "PILOTO_TF"));
+        e.setPiloto(pilotoStr != null
+                && (pilotoStr.equalsIgnoreCase("true")
+                    || pilotoStr.equals("1")
+                    || pilotoStr.equalsIgnoreCase("sim")));
+        e.setDemandante(transformer.asString(get(headers, row, "DEMANDANTE")));
+        e.setDtTreinamento(transformer.parseDate(get(headers, row, "DT_TREINAMENTO")));
+        e.setAtivo(true);
+        return e;
+    }
+
+    /**
+     * Mapeia uma linha de {@code MUN_SEMATIVIDADE} para {@link MunicipioSemAtividadeEntity}.
+     *
+     * <p>Campos assumidos: {@code COD_IBGE} e {@code MUNICIPIO}.
+     * Se os nomes reais diferirem, ajustar aqui e em {@code SyncService.CAMPOS_MUN_SEM_ATIV}.</p>
+     *
+     * @param headers lista de nomes de campos
+     * @param row     valores correspondentes
+     * @return entidade mapeada, ou {@code null} se cod_ibge for inválido
+     */
+    private MunicipioSemAtividadeEntity mapMunicipioSemAtividade(List<String> headers, List<Object> row) {
+        String codIbge = transformer.asString(get(headers, row, "COD_IBGE"));
+        if (codIbge == null || codIbge.isBlank()) {
+            log.warn("Linha ignorada: COD_IBGE inválido — {}", row);
+            return null;
+        }
+
+        MunicipioSemAtividadeEntity e = new MunicipioSemAtividadeEntity(codIbge);
+        e.setNome(transformer.asString(get(headers, row, "MUNICIPIOCHECK")));
+        return e;
+    }
+
+    /**
+     * Carrega registros de link do {@link ExtractResult} no banco H2.
+     *
+     * <p>Estratégia truncate-reload: apaga todos os registros anteriores e reinsere.</p>
+     *
+     * @param result resultado da extração de {@code LINK}
+     * @return contagem de registros carregados
+     */
+    @Transactional
+    public int carregarLink(ExtractResult result) {
+        linkRepository.deleteAllInBatch();
+
+        if (result.isEmpty()) {
+            log.info("Nenhum link a carregar.");
+            return 0;
+        }
+
+        List<LinkEntity> entidades = new ArrayList<>();
+        for (List<Object> row : result.rows()) {
+            LinkEntity entity = mapLink(result.headers(), row);
+            if (entity != null) entidades.add(entity);
+        }
+
+        linkRepository.saveAll(entidades);
+        log.info("link: {} registros carregados.", entidades.size());
+        return entidades.size();
+    }
+
+    /**
+     * Carrega municípios aprovados no piloto do {@link ExtractResult} no banco H2.
+     *
+     * <p>Estratégia truncate-reload.</p>
+     *
+     * @param result resultado da extração de {@code MUNAPROV_PILOTO}
+     * @return contagem de registros carregados
+     */
+    @Transactional
+    public int carregarMunaprovPiloto(ExtractResult result) {
+        munaprovPilotoRepository.deleteAllInBatch();
+
+        if (result.isEmpty()) {
+            log.info("Nenhum munaprov_piloto a carregar.");
+            return 0;
+        }
+
+        List<MunaprovPilotoEntity> entidades = new ArrayList<>();
+        for (List<Object> row : result.rows()) {
+            String municipio = transformer.asString(get(result.headers(), row, "MUNICIPIO"));
+            if (municipio == null || municipio.isBlank()) continue;
+            MunaprovPilotoEntity e = new MunaprovPilotoEntity();
+            e.setMunicipio(municipio);
+            e.setCnesIndicado(transformer.asString(get(result.headers(), row, "CNES_INDICADO")));
+            entidades.add(e);
+        }
+
+        munaprovPilotoRepository.saveAll(entidades);
+        log.info("munaprov_piloto: {} registros carregados.", entidades.size());
+        return entidades.size();
+    }
+
+    /**
+     * Carrega municípios para mapa offline do {@link ExtractResult} no banco H2.
+     *
+     * <p>Estratégia truncate-reload.</p>
+     *
+     * @param result resultado da extração de {@code MAPS_OFF}
+     * @return contagem de registros carregados
+     */
+    @Transactional
+    public int carregarMapsOff(ExtractResult result) {
+        mapsOffRepository.deleteAllInBatch();
+
+        if (result.isEmpty()) {
+            log.info("Nenhum maps_off a carregar.");
+            return 0;
+        }
+
+        List<MapsOffEntity> entidades = new ArrayList<>();
+        for (List<Object> row : result.rows()) {
+            String coIbge = transformer.asString(get(result.headers(), row, "co_IBGE"));
+            if (coIbge == null || coIbge.isBlank()) continue;
+            MapsOffEntity e = new MapsOffEntity(coIbge);
+            e.setMunicipio(transformer.asString(get(result.headers(), row, "co_MUNICIPIO")));
+            entidades.add(e);
+        }
+
+        mapsOffRepository.saveAll(entidades);
+        log.info("maps_off: {} registros carregados.", entidades.size());
+        return entidades.size();
+    }
+
+    /**
+     * Mapeia uma linha de {@code LINK} para {@link LinkEntity}.
+     *
+     * @param headers lista de nomes de campos
+     * @param row     valores correspondentes
+     * @return entidade mapeada, ou {@code null} se CHAVE for inválida
+     */
+    private LinkEntity mapLink(List<String> headers, List<Object> row) {
+        // O campo CHAVE no Qlik retorna sempre nulo; ID_DIGSAUDE_REF contém a chave composta real
+        String chave = transformer.asString(get(headers, row, "ID_DIGSAUDE_REF"));
+        if (chave == null || chave.isBlank()) {
+            log.warn("Linha ignorada: ID_DIGSAUDE_REF inválido — {}", row);
+            return null;
+        }
+
+        LinkEntity e = new LinkEntity(chave);
+        e.setMunicipio(transformer.asString(get(headers, row, "MUNICIPIO")));
+        e.setIdDigsaudeRef(chave); // mesmo valor que a chave
+        e.setIdJorndRef(transformer.asString(get(headers, row, "ID_JORND_REF")));
+        e.setIdUserRef(transformer.asLong(get(headers, row, "ID_USER_REF")));
+        Long ano = transformer.asLong(get(headers, row, "ANO"));
+        e.setAno(ano != null ? ano.intValue() : null);
+        e.setMes(transformer.asString(get(headers, row, "MES")));
+        e.setMesAno(transformer.asString(get(headers, row, "MES_ANO")));
         return e;
     }
 

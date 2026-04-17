@@ -126,6 +126,26 @@ public class SchemaController {
      * @param tabela nome da tabela (padrão: "DB_DIGSAUDE")
      * @return lista com os nomes de todos os campos encontrados na tabela
      */
+    /**
+     * Lista as tabelas disponíveis na fonte de dados.
+     *
+     * <p>Endpoint diagnóstico para descobrir os nomes exatos das tabelas no Qlik.</p>
+     *
+     * @return lista com os nomes de todas as tabelas encontradas na fonte
+     */
+    @GetMapping("/schema/tabelas")
+    @Operation(
+        summary = "Listar tabelas disponíveis",
+        description = "Descobre os nomes de todas as tabelas disponíveis na fonte de dados"
+    )
+    @ApiResponse(responseCode = "200", description = "Tabelas retornadas com sucesso")
+    public List<String> tabelas() {
+        return dataSourcePort.getDataSchema()
+                .tabelas().stream()
+                .map(br.gov.ms.saude.ssd.domain.model.TableSchema::nome)
+                .toList();
+    }
+
     @GetMapping("/schema/campos")
     @Operation(
         summary = "Listar campos de uma tabela",
