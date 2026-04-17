@@ -34,14 +34,22 @@ requeira alteração no domínio ou nos serviços de negócio.
 
 ### Principais tabelas extraídas
 
-| Tabela Qlik | Registros (ref. mar/2026) | Conteúdo |
-|-------------|--------------------------|----------|
-| `DB_DIGSAUDE` | 16.426 | Atendimentos realizados |
-| `LINK` | 22.325 | Ligação atendimentos × usuários |
-| `TEMPDB_USER` | 9.213 | Profissionais / usuários |
-| `USERJORNADA` | 5.310 | Jornadas e vagas ofertadas |
-| `MUN_PILOTO` | 68 | Municípios no programa piloto |
-| `INCID_SUPORTE` | 314 | Incidentes de suporte técnico |
+| Tabela Qlik | Tabela H2 | Registros (ref. mar/2026) | Estratégia | Conteúdo |
+|-------------|-----------|--------------------------|------------|----------|
+| `DB_DIGSAUDE` | `atendimento` | 16.426 | Incremental | Atendimentos realizados |
+| `LINK` | `link` | 22.325 | Truncate-reload | Ligação atendimentos × jornadas × profissionais |
+| `TEMPDB_USER` | `profissional` | 9.213 | Incremental | Profissionais / usuários |
+| `USERJORNADA` | `jornada_vagas` | 5.310 | Truncate-reload | Jornadas e vagas ofertadas |
+| `MUN_PILOTO` | `municipio_piloto` | 68 | Truncate-reload | Municípios no programa piloto |
+| `MUN_SEMATIVIDADE` | `municipio_sem_atividade` | 68 | Truncate-reload | Municípios sem atividade registrada |
+| `MUNAPROV_PILOTO` | `munaprov_piloto` | 207 | Truncate-reload | Municípios aprovados no programa piloto |
+| `MAPS_OFF` | `maps_off` | 79 | Truncate-reload | Dados geográficos para mapa offline |
+
+> **Notas de mapeamento de campos:**
+> - `LINK.CHAVE` retorna sempre nulo no Qlik — a chave natural usada é `ID_DIGSAUDE_REF` (chave composta, ex: `14_fev_2025_DEODÁPOLIS`)
+> - `USERJORNADA.MES_VAGAS` é texto (ex: `"fev"`) — o campo numérico é `MES_NUM_VAGAS`
+> - `USERJORNADA.ID_USER` não existe — o campo correto é `ID_USER_JORND`
+> - `MUN_PILOTO` não possui campo `COD_IBGE` — a coluna correspondente em `municipio_piloto` fica nula intencionalmente
 
 ---
 
@@ -230,8 +238,9 @@ O banco H2 é armazenado em `./data/ssd-db.mv.db` (diretório `data/` está no `
 | `GET` | `/api/v1/incidentes` | Incidentes de suporte técnico |
 | `GET` | `/api/v1/schema` | Schema das tabelas extraídas da fonte |
 | `GET` | `/api/v1/health` | Saúde da conexão com a fonte de dados |
-| `GET` | `/api/v1/sync/status` | Status da última sincronização |
-| `POST` | `/api/v1/sync/trigger` | Dispara sincronização manual (requer perfil admin) |
+| `GET` | `/api/v1/sync/status` | Status da última sincronização das tabelas principais |
+| `GET` | `/api/v1/sync/history/{tabela}` | Histórico de sync de uma tabela (ex: `link`, `atendimento`) |
+| `POST` | `/api/v1/sync/trigger` | Dispara sincronização manual (`?tipo=full` ou `?tipo=incremental`) |
 
 Documentação interativa completa disponível em `/swagger-ui.html` após iniciar a aplicação.
 
