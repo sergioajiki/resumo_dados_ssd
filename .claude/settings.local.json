@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import pdfplumber; print\\('ok'\\)\")",
+      "Bash(pip install *)",
+      "Read(//c/Users/sergioa/AppData/Local/Programs/**)",
+      "Bash(ls /c/Python*)",
+      "Bash(cmd.exe /c \"where python\")",
+      "PowerShell(py *)",
+      "WebFetch(domain:paineispublicos.saude.ms.gov.br)",
+      "WebSearch",
+      "WebFetch(domain:www.gov.br)",
+      "WebFetch(domain:rnds-guia.saude.gov.br)",
+      "WebFetch(domain:cadastrohm.saude.gov.br)",
+      "Bash(node *)",
+      "Bash(curl -s http://localhost:8080/api/)",
+      "Bash(curl -s http://localhost:8080/actuator/mappings)",
+      "Bash(curl -s \"http://localhost:8080/v3/api-docs\")",
+      "Bash(curl -s \"http://localhost:8080/swagger-ui/index.html\")",
+      "Bash(curl -s \"http://localhost:8080/atendimentos\")",
+      "Bash(curl -s \"http://localhost:8080/api/v1/atendimentos?size=3&page=0\")",
+      "Bash(curl -s \"http://localhost:8080/api/v1/atendimentos?size=10&page=0\")",
+      "Bash(curl -s \"http://localhost:8080/api/v1/atendimentos?size=500&page=0\")",
+      "Bash(curl *)",
+      "Bash(git -C C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd diff --name-only)",
+      "Bash(git -C C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd status --short)",
+      "Bash(git -C C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd checkout -- src/main/java/br/gov/ms/saude/ssd/adapter/out/persistence/entity/ProfissionalEntity.java src/main/java/br/gov/ms/saude/ssd/adapter/out/persistence/repository/ProfissionalRepository.java)",
+      "Bash(rm -f C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/java/br/gov/ms/saude/ssd/adapter/in/rest/ProfissionalController.java C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/java/br/gov/ms/saude/ssd/adapter/in/rest/dto/ProfissionalDTO.java C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/java/br/gov/ms/saude/ssd/application/service/ConsultarProfissionaisService.java C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/java/br/gov/ms/saude/ssd/application/usecase/ConsultarProfissionaisUseCase.java C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/java/br/gov/ms/saude/ssd/domain/model/ProfissionalFilter.java C:/Users/sergioa/Desenvolvimento/resumo_dados_ssd/src/main/resources/db/migration/V17__add_cns_profissional.sql)",
+      "Bash(git *)",
+      "Bash(./mvnw flyway:repair -Dflyway.url=\"jdbc:h2:file:./data/ssd-db;AUTO_SERVER=FALSE\" -Dflyway.user=sa -Dflyway.password=\"\" -Dflyway.locations=\"classpath:db/migration\")",
+      "Bash(cmd.exe /c \"mvnw.cmd flyway:repair -Dflyway.url=jdbc:h2:file:./data/ssd-db;AUTO_SERVER=FALSE -Dflyway.user=sa -Dflyway.password= -Dflyway.locations=classpath:db/migration\")",
+      "Bash(java *)",
+      "PowerShell(cmd /c \"cd C:\\\\Users\\\\sergioa\\\\Desenvolvimento\\\\resumo_dados_ssd && npm install ws 2>&1\")",
+      "PowerShell(cmd /c \"cd C:\\\\Users\\\\sergioa\\\\Desenvolvimento\\\\resumo_dados_ssd && node C:\\\\Temp\\\\qlik_tables.js 2>&1\")",
+      "PowerShell(cmd /c \"cd C:\\\\Users\\\\sergioa\\\\Desenvolvimento\\\\resumo_dados_ssd && node qlik_tables.js 2>&1\")"
+    ]
+  }
+}

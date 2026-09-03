@@ -44,11 +44,16 @@ public interface SyncLogRepository extends JpaRepository<SyncLogEntity, Long> {
     /**
      * Retorna o histórico de sincronizações de uma tabela, ordenado por data decrescente.
      *
+     * <p>Desempata por {@code id} decrescente: como o registro {@code RUNNING} inicial
+     * e o registro final ({@code SUCCESS}/{@code FAILED}) de uma mesma execução podem
+     * compartilhar o mesmo {@code iniciadoEm}, o {@code id} (sempre maior no registro
+     * mais recente) garante que a linha mais atual apareça primeiro.</p>
+     *
      * @param tabela  nome da tabela
      * @param pageable paginação (usado para limitar o número de resultados)
-     * @return lista de entidades de log ordenadas por {@code iniciadoEm} decrescente
+     * @return lista de entidades de log ordenadas por {@code iniciadoEm} e {@code id} decrescentes
      */
-    List<SyncLogEntity> findByTabelaOrderByIniciadoEmDesc(String tabela, Pageable pageable);
+    List<SyncLogEntity> findByTabelaOrderByIniciadoEmDescIdDesc(String tabela, Pageable pageable);
 
     /**
      * Verifica se existe alguma sync com status RUNNING para uma tabela.

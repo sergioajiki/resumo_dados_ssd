@@ -61,8 +61,8 @@ public class SyncRepositoryAdapter implements SyncRepositoryPort {
      * Caso contrário, o registro existente é atualizado (upsert via JPA).</p>
      */
     @Override
-    public void recordSync(SyncLog log) {
-        syncLogRepository.save(SyncLogEntity.of(log));
+    public SyncLog recordSync(SyncLog log) {
+        return syncLogRepository.save(SyncLogEntity.of(log)).toDomain();
     }
 
     /**
@@ -74,7 +74,7 @@ public class SyncRepositoryAdapter implements SyncRepositoryPort {
     @Override
     public List<SyncLog> getHistory(String tableName, int limit) {
         return syncLogRepository
-                .findByTabelaOrderByIniciadoEmDesc(tableName, PageRequest.of(0, limit))
+                .findByTabelaOrderByIniciadoEmDescIdDesc(tableName, PageRequest.of(0, limit))
                 .stream()
                 .map(SyncLogEntity::toDomain)
                 .collect(Collectors.toList());

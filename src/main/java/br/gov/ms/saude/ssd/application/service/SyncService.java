@@ -246,6 +246,7 @@ public class SyncService implements ExecutarSyncUseCase {
         try {
             logs.add(sincronizarTabela(TABELA_QLIK_ATEND, TABELA_H2_ATEND,
                     CAMPOS_ATENDIMENTO, incremental, TipoTabela.ATENDIMENTO));
+            loaderService.carregarAtendimentosNorm();
             logs.add(sincronizarTabela(TABELA_QLIK_PROF, TABELA_H2_PROF,
                     CAMPOS_PROFISSIONAL, incremental, TipoTabela.PROFISSIONAL));
             // Jornada e tabelas de lookup: sempre full (sem campo DT_NEW / tabelas pequenas)
@@ -287,8 +288,7 @@ public class SyncService implements ExecutarSyncUseCase {
     private SyncLog sincronizarTabela(String tabelaQlik, String tabelaH2,
                                        List<String> campos, boolean incremental,
                                        TipoTabela tipo) {
-        SyncLog logIniciado = SyncLog.iniciando(tabelaH2);
-        syncRepositoryPort.recordSync(logIniciado);
+        SyncLog logIniciado = syncRepositoryPort.recordSync(SyncLog.iniciando(tabelaH2));
 
         try {
             ExtractResult result;

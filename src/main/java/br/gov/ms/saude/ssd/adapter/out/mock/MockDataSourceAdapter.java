@@ -57,8 +57,8 @@ public class MockDataSourceAdapter implements DataSourcePort, DataExtractorPort 
     /** Nome da tabela secundária de profissionais disponível no mock — igual ao nome real no Qlik. */
     public static final String TABELA_PROFISSIONAIS = "TEMPDB_USER";
 
-    /** Nome da tabela de jornadas/vagas disponível no mock. */
-    public static final String TABELA_JORNADA = "TEMPDB_JORNADA";
+    /** Nome da tabela de jornadas/vagas disponível no mock — igual ao nome real no Qlik. */
+    public static final String TABELA_JORNADA = "USERJORNADA";
 
     private final ObjectMapper objectMapper;
 
@@ -101,6 +101,8 @@ public class MockDataSourceAdapter implements DataSourcePort, DataExtractorPort 
         dadosPorTabela.put("LINK",            carregarJson("mock-data/link.json"));
         dadosPorTabela.put("MUNAPROV_PILOTO", carregarJson("mock-data/munaprov_piloto.json"));
         dadosPorTabela.put("MAPS_OFF",        carregarJson("mock-data/maps_off.json"));
+        dadosPorTabela.put("MUN_PILOTO",      carregarJson("mock-data/mun_piloto.json"));
+        dadosPorTabela.put("MUN_SEMATIVIDADE",carregarJson("mock-data/mun_sematividade.json"));
         objetosDisponiveis = construirObjetosDisponiveis();
     }
 

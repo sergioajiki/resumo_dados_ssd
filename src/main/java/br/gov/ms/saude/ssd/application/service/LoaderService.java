@@ -9,6 +9,7 @@ import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MunicipioPilotoEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.MunicipioSemAtividadeEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.ProfissionalEntity;
 import br.gov.ms.saude.ssd.adapter.out.persistence.entity.SyncDiagnosticoEntity;
+import br.gov.ms.saude.ssd.adapter.out.persistence.repository.AtendimentoNormRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.AtendimentoRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.JornadaVagasRepository;
 import br.gov.ms.saude.ssd.adapter.out.persistence.repository.LinkRepository;
@@ -53,6 +54,7 @@ public class LoaderService {
     static final int BATCH_SIZE = 500;
 
     private final AtendimentoRepository atendimentoRepository;
+    private final AtendimentoNormRepository atendimentoNormRepository;
     private final ProfissionalRepository profissionalRepository;
     private final JornadaVagasRepository jornadaVagasRepository;
     private final MunicipioPilotoRepository municipioPilotoRepository;
@@ -67,6 +69,7 @@ public class LoaderService {
      * Injeta os repositórios e o serviço de transformação via construtor.
      *
      * @param atendimentoRepository           repositório de atendimentos
+     * @param atendimentoNormRepository       repositório da tabela normalizada de atendimentos
      * @param profissionalRepository          repositório de profissionais
      * @param jornadaVagasRepository          repositório de jornadas/vagas
      * @param municipioPilotoRepository       repositório de municípios piloto
@@ -78,6 +81,7 @@ public class LoaderService {
      * @param transformer                     serviço de transformação de campos
      */
     public LoaderService(AtendimentoRepository atendimentoRepository,
+                         AtendimentoNormRepository atendimentoNormRepository,
                          ProfissionalRepository profissionalRepository,
                          JornadaVagasRepository jornadaVagasRepository,
                          MunicipioPilotoRepository municipioPilotoRepository,
@@ -88,6 +92,7 @@ public class LoaderService {
                          SyncDiagnosticoRepository syncDiagnosticoRepository,
                          FieldTransformerService transformer) {
         this.atendimentoRepository = atendimentoRepository;
+        this.atendimentoNormRepository = atendimentoNormRepository;
         this.profissionalRepository = profissionalRepository;
         this.jornadaVagasRepository = jornadaVagasRepository;
         this.municipioPilotoRepository = municipioPilotoRepository;
@@ -97,6 +102,24 @@ public class LoaderService {
         this.mapsOffRepository = mapsOffRepository;
         this.syncDiagnosticoRepository = syncDiagnosticoRepository;
         this.transformer = transformer;
+    }
+
+    /**
+     * Recarrega a tabela {@code atendimento_norm} a partir dos dados já persistidos em {@code atendimento}.
+     *
+     * <p>Estratégia truncate-reload via SQL nativo, aplicando as mesmas transformações
+     * da migration V17: limpeza de CNS/CEP, split de nome_medico em especialidade e nome,
+     * e split de cnes_estabelecimento em código e nome do estabelecimento.</p>
+     *
+     * @return número de registros carregados em {@code atendimento_norm}
+     */
+    @Transactional
+    public int carregarAtendimentosNorm() {
+        atendimentoNormRepository.truncate();
+        atendimentoNormRepository.populateFromAtendimento();
+        int total = (int) atendimentoNormRepository.count();
+        log.info("atendimento_norm recarregada: {} registros.", total);
+        return total;
     }
 
     /**

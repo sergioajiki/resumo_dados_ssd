@@ -66,9 +66,9 @@ class MockDataSourceAdapterTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("getDataSchema deve retornar schema com duas tabelas")
+    @DisplayName("getDataSchema deve retornar schema com oito tabelas")
     void getDataSchema_deveConterDuasTabelas() {
-        assertThat(adapter.getDataSchema().tabelas()).hasSize(2);
+        assertThat(adapter.getDataSchema().tabelas()).hasSize(8);
     }
 
     @Test
@@ -107,9 +107,9 @@ class MockDataSourceAdapterTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("listAvailableObjects deve retornar 19 objetos (8 filtros + 3 KPIs + 8 gráficos)")
+    @DisplayName("listAvailableObjects deve retornar 16 objetos (8 tabelas × TABLE + CHART)")
     void listAvailableObjects_deveRetornar19Objetos() {
-        assertThat(adapter.listAvailableObjects()).hasSize(19);
+        assertThat(adapter.listAvailableObjects()).hasSize(16);
     }
 
     @Test

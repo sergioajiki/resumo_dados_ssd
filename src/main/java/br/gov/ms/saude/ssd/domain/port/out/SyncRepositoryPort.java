@@ -34,9 +34,15 @@ public interface SyncRepositoryPort {
      * <p>Deve ser chamado tanto em caso de sucesso quanto de falha,
      * para garantir rastreabilidade completa do histórico.</p>
      *
+     * <p>Retorna o {@link SyncLog} persistido, com o {@code id} gerado pelo banco
+     * preenchido. O chamador deve reaproveitar esse retorno (e não o {@code log}
+     * original) nas transições de estado subsequentes ({@code concluido}/{@code falhou}),
+     * para que a mesma linha seja atualizada em vez de uma nova ser inserida.</p>
+     *
      * @param log registro da execução de sincronização
+     * @return o log persistido, com {@code id} preenchido
      */
-    void recordSync(SyncLog log);
+    SyncLog recordSync(SyncLog log);
 
     /**
      * Retorna o histórico de sincronizações de uma tabela, ordenado por data decrescente.
